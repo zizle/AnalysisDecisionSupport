@@ -1,11 +1,16 @@
 # _*_ coding:utf-8 _*_
 # __Author__： zizle
 
+SUPERUSER = 1  # 超级管理
+OPERATOR = 2  # 运营
+COLLECTOR = 3  # 信息
+RESEARCH = 4  # 研究
+NORMAL = 5  # 普通
 
-USER_ROLES = {
-    1: 'superuser',  # 超级管理
-    2: 'operator',  # 运营
-    3: 'collector',  # 信息
-    4: 'research',  # 研究
-    5: 'normal',  # 普通
+user_roles = {
+    1: "超级管理员",
+    2: "运营管理员",
+    3: "信息管理员",
+    4: "研究员",
+    5: "普通用户"
 }

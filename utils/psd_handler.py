@@ -25,7 +25,7 @@ def check_user_password(password, real_password):
 
 def verify_json_web_token(token):
     if not token:
-        return {}
+        return None
     try:
         data = jwt.decode(
             token,
@@ -33,7 +33,7 @@ def verify_json_web_token(token):
             algorithms=['HS256']
         )
     except Exception as e:
-        print(e)
-        return {}
+        # print(e)
+        return None
     else:
         return data

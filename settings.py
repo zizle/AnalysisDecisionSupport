@@ -13,14 +13,14 @@ DATABASES = {
         'PORT': 3306,
         'USER': 'ads_worker',
         'PASSWORD': 'rdyjxxxxads',
-        'NAME': 'ads_dbsystem'
+        'NAME': 'analysis_decision'
     },
     'mysql': {
         'HOST': 'localhost',
         'PORT': 3306,
         'USER': 'root',
         'PASSWORD': 'mysql',
-        'NAME': 'ads_dbsystem'
+        'NAME': 'analysis_decision'
     },
     'sqlite': {
         'NAME': 'test.db'

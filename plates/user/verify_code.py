@@ -13,11 +13,10 @@ from settings import BASE_DIR
 class ImageCodeView(MethodView):
     def get(self):
         image_code_id = request.args.get('imgcid')
-        print('image_code_id:',image_code_id)
         if not image_code_id:
             return jsonify({'message':"参数错误!"}), 400
-        # 获取随机颜色的函数
-        def get_random_color():
+
+        def get_random_color(): # 获取随机颜色的函数
             return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
 
         # 生成一个图片对象
