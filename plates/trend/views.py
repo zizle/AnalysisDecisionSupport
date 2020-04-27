@@ -61,7 +61,6 @@ class TrendGroupView(MethodView):
 class TrendTableView(MethodView):
     def post(self):
         body_json = request.json
-        print(body_json)
         utoken = body_json.get('utoken')
         user_info = verify_json_web_token(utoken)
         if not user_info or user_info['role_num'] > enums.RESEARCH:
@@ -81,54 +80,57 @@ class TrendTableView(MethodView):
             # 查询用户品种权限
             auth_statement = "SELECT linkuv.id,varietytb.name_en " \
                              "FROM `link_user_variety` AS linkuv INNER JOIN `info_variety` AS varietytb " \
-                             "ON (usertb.id=%d AND linkuv.variety_id=%d) AND varietytb.id=%d;" % (user_id, variety_id, variety_id)
+                             "ON (linkuv.user_id=%d AND linkuv.variety_id=%d) AND varietytb.id=%d;" % (user_id, variety_id, variety_id)
             cursor.execute(auth_statement)
             has_auth_variety = cursor.fetchone()
             if not has_auth_variety:
                 raise ValueError("没有权限,不能这样操作")
-            # 查询最大的表名称index
+            # 查询表内最大的sql_index
             select_max_sql_index = "SELECT MAX(`sql_index`) AS  `max_index` " \
-                                   "FROM `info_trend_table` WHERE `variety_id`=%d;" %variety_id
+                                   "FROM `info_trend_table` WHERE `variety_id`=%d;" % variety_id
             cursor.execute(select_max_sql_index)
-            max_index_ret = cursor.fetchone()
-            max_index = 0 if not max_index_ret else max_index_ret['max_index']
+            max_index_ret = cursor.fetchone()['max_index']
+            max_index = 1 if not max_index_ret else max_index_ret + 1
             variety_name_en = has_auth_variety['name_en']
-            sql_table_name = "{}_table_{}".format(variety_name_en, max_index + 1)
+            sql_table_name = "`{}_table_{}`".format(variety_name_en, max_index)
             # 增加数据信息表
             insert_statement = "INSERT INTO `info_trend_table` (`title`,`sql_index`,`sql_table`,`group_id`," \
                                "`variety_id`,`author_id`,`updater_id`,`origin`) " \
                                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s);"
-            print("增加信息表:\n", insert_statement)
-            # cursor.execute(insert_statement, (title, max_index, sql_table_name, group_id, variety_id, user_id, user_id, origin))
+            # print("增加信息表:\n", insert_statement)
+            cursor.execute(insert_statement, (title, max_index, sql_table_name, group_id, variety_id, user_id, user_id, origin))
+
             # 根据表头数量创建列数量
             table_headers = table_values['headers']
             table_contents = table_values['contents']
-            col_str = ""
+            create_col_str = ""
+            add_col_str = ""
             values_str = ""
             for index in range(len(table_headers)):
                 if index == len(table_headers) - 1:
-                    col_str += "`column_{}` VARCHAR(128) DEFAULT ''".format(index)
+                    create_col_str += "`column_{}` VARCHAR(128) DEFAULT ''".format(index)
+                    add_col_str += "`column_{}`".format(index)
                     values_str += "%s"
                 else:
-                    col_str += "`column_{}` VARCHAR(128) DEFAULT '',".format(index)
+                    create_col_str += "`column_{}` VARCHAR(128) DEFAULT '',".format(index)
+                    add_col_str += "`column_{}`,".format(index)
                     values_str += "%s,"
-            print(col_str)
             # 创建数据表
             create_table_statement = "CREATE TABLE IF NOT EXISTS %s (" \
                                      "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT," \
                                      "`create_time` DATETIME NOT NULL DEFAULT NOW()," \
                                      "`update_time` DATETIME NOT NULL DEFAULT NOW()," \
                                      "%s" \
-                                     ");"
-            print("创建数据库表:\n", insert_statement)
-            # cursor.execute(create_table_statement, (sql_table_name, col_str))
+                                     ");" % (sql_table_name, create_col_str)
+            # print("创建数据库表:\n", create_table_statement)
+            cursor.execute(create_table_statement)
 
             # 增加数据
             insert_data_statement = "INSERT INTO %s (%s) " \
-                                    "VALUES (%s);" % (sql_table_name, col_str, values_str)
-            print("添加实际数据:\n", insert_statement)
-            # cursor.execute(insert_data_statement, (table_contents))
-            # db_connection.commit()
+                                    "VALUES (%s);" % (sql_table_name, add_col_str, values_str)
+            # print("添加实际数据:\n", insert_data_statement)
+            cursor.executemany(insert_data_statement, table_contents)
+            db_connection.commit()
         except Exception as e:
             db_connection.rollback()
             db_connection.close()

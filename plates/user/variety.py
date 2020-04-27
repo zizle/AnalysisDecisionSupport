@@ -20,6 +20,7 @@ class UserVarietyView(MethodView):
         cursor.execute(query_user)
         user_info = cursor.fetchone()
         db_connection.close()
+        print(query_result)
         return jsonify({"message":"查询成功!", "variety": query_result, "user_info":user_info})
 
     def post(self, uid):
