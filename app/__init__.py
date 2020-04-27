@@ -10,6 +10,8 @@ from utils.log_handler import config_logger_handler
 from plates.basic import basic_blp
 from plates.user import user_blp
 from plates.homepage import homepage_blp
+from plates.pserver import pserver_blp
+from plates.trend import trend_blp
 from settings import BASE_DIR
 
 static_folder = os.path.join(BASE_DIR, 'fileStorage')
@@ -24,6 +26,8 @@ app.logger.addHandler(config_logger_handler())  # 配置日志
 app.register_blueprint(basic_blp)
 app.register_blueprint(user_blp)
 app.register_blueprint(homepage_blp)
+app.register_blueprint(pserver_blp)
+app.register_blueprint(trend_blp)
 
 # 主页
 @app.route('/')
