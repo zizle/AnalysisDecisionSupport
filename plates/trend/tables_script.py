@@ -30,10 +30,10 @@ def create_tables():
                    "`variety_id` INT(11) NOT NULL,"
                    "`author_id` INT(11) NOT NULL,"
                    "`updater_id` INT(11) NOT NULL,"
-                   "`origin` VARCHAR(512) DEFAULT '',"
+                   "`origin` VARCHAR(256) DEFAULT '',"
+                   "`headers` VARCHAR(256) NOT NULL,"
                    "`is_active` BIT NOT NULL DEFAULT 1"
                    ");")
-
 
     db_connection.commit()
     db_connection.close()
