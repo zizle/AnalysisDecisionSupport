@@ -15,8 +15,9 @@ from plates.trend import trend_blp
 from settings import BASE_DIR
 
 static_folder = os.path.join(BASE_DIR, 'fileStorage')
+templates_folder = os.path.join(BASE_DIR, 'templates')
 
-app = Flask(__name__, static_url_path='/ads', static_folder=static_folder)
+app = Flask(__name__, static_url_path='/ads', static_folder=static_folder, template_folder=templates_folder)
 
 CORS(app, supports_credemtials=True)  # 支持跨域
 app.config['JSON_AS_ASCII'] = False  # json返回数据支持中文

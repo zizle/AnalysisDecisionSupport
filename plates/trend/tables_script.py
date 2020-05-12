@@ -18,20 +18,43 @@ def create_tables():
                    "UNIQUE KEY `vtgroup`(`variety_id`,`name`)"
                    ");")
 
-    # 品种数据表
+    # 品种数据表信息
     cursor.execute("CREATE TABLE IF NOT EXISTS `info_trend_table` ("
                    "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
                    "`create_time` DATETIME NOT NULL DEFAULT NOW(),"
                    "`update_time` DATETIME NOT NULL DEFAULT NOW(),"
-                   "`title` VARCHAR(128) NOT NULL DEFAULT '',"
-                   "`sql_index` INT(11) NOT NULL,"
-                   "`sql_table` VARCHAR(32) NOT NULL,"
+                   "`title` VARCHAR(128) NOT NULL,"
+                   "`title_md5` VARCHAR(32) NOT NULL,"
+                   "`suffix_index` INT(11) NOT NULL,"
+                   "`sql_table` VARCHAR(32) NOT NULL UNIQUE,"
                    "`group_id` INT(11) NOT NULL,"
                    "`variety_id` INT(11) NOT NULL,"
                    "`author_id` INT(11) NOT NULL,"
                    "`updater_id` INT(11) NOT NULL,"
                    "`origin` VARCHAR(256) DEFAULT '',"
-                   "`headers` VARCHAR(256) NOT NULL,"
+                   "`min_date` VARCHAR(10) DEFAULT '',"
+                   "`max_date` VARCHAR(10) DEFAULT '',"
+                   "`is_active` BIT NOT NULL DEFAULT 1"
+                   ");")
+
+    # 配置好的数据图表信息
+    cursor.execute("CREATE TABLE IF NOT EXISTS `info_trend_chart` ("
+                   "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+                   "`create_time` DATETIME NOT NULL DEFAULT NOW(),"
+                   "`update_time` DATETIME NOT NULL DEFAULT NOW(),"
+                   "`title` VARCHAR(128) NOT NULL,"
+                   "`table_id` INT(11) NOT NULL,"
+                   "`sql_table` VARCHAR(32) NOT NULL,"
+                   "`is_watermark` BIT NOT NULL DEFAULT 0,"
+                   "`watermark` VARCHAR(64) DEFAULT '',"
+                   "`bottom_axis` VARCHAR(64) NOT NULL,"
+                   "`left_axis` VARCHAR(512) NOT NULL,"
+                   "`right_axis` VARCHAR(512) NOT NULL,"
+                   "`group_id` INT(11) NOT NULL,"
+                   "`variety_id` INT(11) NOT NULL,"
+                   "`author_id` INT(11) NOT NULL,"
+                   "`updater_id` INT(11) NOT NULL,"
+                   "`decipherment` TEXT DEFAULT '',"
                    "`is_active` BIT NOT NULL DEFAULT 1"
                    ");")
 
