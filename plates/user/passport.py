@@ -7,7 +7,7 @@ import datetime
 from flask import request,jsonify,current_app
 from flask.views import MethodView
 from utils.client import get_client
-from utils.psd_handler import hash_user_password, verify_json_web_token
+from utils.psd_handler import hash_user_password, verify_json_web_token, check_user_password
 from db import MySQLConnection, RedisConnection
 from settings import JSON_WEB_TOKEN_EXPIRE, SECRET_KEY
 
@@ -82,8 +82,9 @@ class LoginView(MethodView):
             return jsonify({"message":"参数错误,登录失败。"}), 400
         username = body_json.get("username", '')
         phone = body_json.get("phone", '')
+        password = body_json.get("password", '')
         # 查询数据库
-        select_statement = "SElECT `id`,`username`,`phone`,`avatar`,`email`,`role_num`,`note` " \
+        select_statement = "SElECT `id`,`username`,`phone`,`avatar`,`email`,`role_num`,`note`,`password` " \
                            "FROM `info_user` " \
                            "WHERE (`username`=%s OR `phone`=%s) AND `is_active`=1;"
         db_connection = MySQLConnection()
@@ -92,6 +93,8 @@ class LoginView(MethodView):
         user_info = cursor.fetchone()
         if not user_info:
             db_connection.close()
+            return jsonify({"message": "用户名或密码错误!"}), 400
+        if not check_user_password(password, user_info['password']):
             return jsonify({"message": "用户名或密码错误!"}), 400
         now = datetime.datetime.now()
         if user_info['role_num'] > 2:
@@ -119,7 +122,7 @@ class LoginView(MethodView):
         user_data = {
             "id": user_info['id'],
             "role_num": user_info['role_num'],
-            "username": username,
+            "username": user_info['username'],
             "phone": phone[0:3] + '****' + phone[7:11],
             "avatar": user_info['avatar'],
             "utoken": utoken
