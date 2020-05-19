@@ -55,6 +55,8 @@ def create_tables():
                    "`author_id` INT(11) NOT NULL,"
                    "`updater_id` INT(11) NOT NULL,"
                    "`decipherment` TEXT DEFAULT '',"
+                   "`is_trend_show` BIT NOT NULL DEFAULT 0,"
+                   "`is_variety_show` BIT NOT NULL DEFAULT 0,"
                    "`is_active` BIT NOT NULL DEFAULT 1"
                    ");")
 

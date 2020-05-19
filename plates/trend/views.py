@@ -330,13 +330,16 @@ class TrendTableView(MethodView):
         return jsonify({'message': '查询成功', 'records': query_result})
 
     def post(self, tid):
+        """给一张表新增数据"""
         body_json = request.json
         utoken = body_json.get('utoken')
         user_info = verify_json_web_token(utoken)
         user_id = user_info['id']
         new_contents = body_json.get('new_contents')
+        if len(new_contents) <= 0:
+            return jsonify({"message": '没有发现任何新数据..'}), 400
         new_headers = body_json.get('new_header')
-        select_table_info = "SELECT `sql_table`,`headers` " \
+        select_table_info = "SELECT `sql_table` " \
                             "FROM `info_trend_table` " \
                             "WHERE `is_active`=1 AND `id`=%d;" % tid
         db_connection = MySQLConnection()
@@ -344,18 +347,13 @@ class TrendTableView(MethodView):
         cursor.execute(select_table_info)
         table_info = cursor.fetchone()
         table_sql_name = table_info['sql_table']
-        table_headers = table_info['headers']
-        if not all([table_sql_name, table_headers]):
+        if not table_sql_name:
             db_connection.close()
             return jsonify({"message": "数据表不存在"}), 400
-        table_headers = table_headers.split(';')
-        if len(new_headers) != len(table_headers):
-            db_connection.close()
-            return jsonify({"message": "数据错误"}), 400
         col_str = ""
         content_str = ""
-        for col_index in range(len(table_headers)):
-            if col_index == len(table_headers) - 1:
+        for col_index in range(len(new_headers)):
+            if col_index == len(new_headers) - 1:
                 col_str += "`column_{}`".format(col_index)
                 content_str += "%s"
             else:
@@ -380,13 +378,19 @@ class TrendTableView(MethodView):
             return jsonify({"message": '添加成功'}), 201
 
     def put(self, tid):
+        """修改id=tid的表内的指定一行数据"""
         body_json = request.json
         utoken = body_json.get('utoken')
         user_info = verify_json_web_token(utoken)
         user_id = user_info['id']
         record_id = body_json.get('record_id')
         record_content = body_json.get('record_content')
-        select_table_info = "SELECT `sql_table`,`headers` " \
+        # 第一列的数据类型检测
+        try:
+            record_content[0] = datetime.datetime.strptime(record_content[0], '%Y-%m-%d').strftime('%Y-%m-%d')
+        except Exception as e:
+            return jsonify({"message":"第一列时间数据格式错误!\n{}".format(e)}), 400
+        select_table_info = "SELECT `sql_table` " \
                             "FROM `info_trend_table` " \
                             "WHERE `is_active`=1 AND `id`=%d;" % tid
         db_connection = MySQLConnection()
@@ -394,18 +398,13 @@ class TrendTableView(MethodView):
         cursor.execute(select_table_info)
         table_info = cursor.fetchone()
         table_sql_name = table_info['sql_table']
-        table_headers = table_info['headers']
-        if not all([table_sql_name, table_headers]):
+        if not table_sql_name:
             db_connection.close()
             return jsonify({"message": "数据表不存在"}), 400
-        table_headers = table_headers.split(';')
-        if len(record_content) != len(table_headers):
-            db_connection.close()
-            return jsonify({"message": "提交数据有误"}), 400
         # 修改数据
         col_str = ""
-        for col_index in range(len(table_headers)):
-            if col_index == len(table_headers) - 1:
+        for col_index in range(len(record_content)):
+            if col_index == len(record_content) - 1:
                 col_str += "`column_{}`=%s".format(col_index)
             else:
                 col_str += "`column_{}`=%s,".format(col_index)
@@ -428,6 +427,47 @@ class TrendTableView(MethodView):
         else:
             db_connection.close()
             return jsonify({"message": "修改记录成功!"}), 200
+
+    def delete(self, tid):
+        """删除数据表"""
+        utoken = request.args.get('utoken')
+        user_info = verify_json_web_token(utoken)
+        if not user_info:
+            return jsonify({"message":"登录已过期.."}), 400
+        user_id = user_info['id']
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        # 先找到原数据表
+        select_statement = "SELECT `id`,`sql_table` FROM `info_trend_table` WHERE `id`=%s AND `author_id`=%s;"
+        cursor.execute(select_statement,(tid, user_id))
+        fetch_one = cursor.fetchone()
+        if not fetch_one:
+            db_connection.close()
+            return jsonify({"message": "删除他人数据就是谋财害命..."}), 400
+        else:
+            db_connection.begin()
+            try:
+                sql_table = fetch_one['sql_table']
+                table_id = fetch_one['id']
+                # 删除根据此表数据画的图
+                delete_relate_chart = "DELETE FROM `info_trend_chart` " \
+                                      "WHERE `table_id`=%s;"
+                cursor.execute(delete_relate_chart, table_id)
+                # 删除表
+                drop_statement = "DROP TABLE %s;" % sql_table
+                # 删除表记录
+                delete_statement = "DELETE FROM `info_trend_table` " \
+                                   "WHERE `id`=%s AND `author_id`=%s;"
+                cursor.execute(delete_statement, (tid, user_id))
+                cursor.execute(drop_statement)
+                db_connection.commit()
+            except Exception:
+                db_connection.rollback()
+                db_connection.close()
+                return jsonify({"message":"删除出错了..."}), 400
+            else:
+                db_connection.close()
+                return jsonify({"message": "这张表已烟消云散..."})
 
 
 class UserTrendChartView(MethodView):
@@ -456,7 +496,7 @@ class UserTrendChartView(MethodView):
             item['update_time'] = item['update_time'].strftime('%Y-%m-%d')
             records.append(item)
         if is_render:
-            return render_template('trend/user_charts.html', user_charts=records)
+            return render_template('trend/charts_render.html', user_charts=records)
         else:
             return jsonify({'message':'查询成功', 'charts_info': records})
 
@@ -519,7 +559,8 @@ class TrendChartOptionsView(MethodView):
             c = self.draw_chart(fetch_one, data_headers, data_frame)
         return c.dump_options_with_quotes()
 
-    def draw_chart(self, params, headers, source_df):
+    @staticmethod
+    def draw_chart(params, headers, source_df):
         # print('headers', headers)
         # print(source_df)
         title = params['title']
@@ -720,18 +761,27 @@ class TrendChartOptionsView(MethodView):
 
         utoken = request.args.get('utoken')
         user_info = verify_json_web_token(utoken)
-        print(user_info)
         if not user_info or int(user_info['id']) > enums.RESEARCH:
             return jsonify({"message": "登录过期或不能进行这样的操作。"}), 400
 
-        decipherment = request.json.get('decipherment', None)
-        if decipherment:
+        decipherment = request.json.get('decipherment', None)  # 解说
+        is_trend_show = request.json.get('is_trend_show', None)  # 首页展示
+        is_variety_show = request.json.get('is_variety_show', None)  # 品种页展示
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        if decipherment is not None:
             update_statement = "UPDATE `info_trend_chart` SET `decipherment`=%s WHERE `id`=%s AND `author_id`=%s;"
-            db_connection = MySQLConnection()
-            cursor = db_connection.get_cursor()
             cursor.execute(update_statement,(decipherment, cid, int(user_info['id'])))
-            db_connection.commit()
-            db_connection.close()
+        if is_trend_show is not None:
+            is_trend_show = 1 if is_trend_show else 0
+            update_statement = "UPDATE `info_trend_chart` SET `is_trend_show`=%s WHERE `id`=%s AND `author_id`=%s;"
+            cursor.execute(update_statement, (is_trend_show, cid, int(user_info['id'])))
+        if is_variety_show is not None:
+            is_variety_show = 1 if is_variety_show else 0
+            update_statement = "UPDATE `info_trend_chart` SET `is_variety_show`=%s WHERE `id`=%s AND `author_id`=%s;"
+            cursor.execute(update_statement, (is_variety_show, cid, int(user_info['id'])))
+        db_connection.commit()
+        db_connection.close()
         return jsonify({"message":"修改成功"})
 
     def delete(self, cid):

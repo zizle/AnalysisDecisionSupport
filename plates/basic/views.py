@@ -79,6 +79,9 @@ class ModuleView(MethodView):
                 parent_id = int(parent_id)
                 insert_statement = "INSERT INTO `info_module`(`name`,`parent_id`) VALUES (%s,%s);"
                 cursor.execute(insert_statement,(module_name, parent_id))
+            new_mid = db_connection.insert_id()  # 新加入的id
+            update_statement = "UPDATE `info_module` SET `sort`=%s WHERE `id`=%s;"
+            cursor.execute(update_statement, (new_mid, new_mid))
             db_connection.commit()
         except Exception as e:
             db_connection.rollback()

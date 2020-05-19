@@ -5,8 +5,10 @@
     <title>用户的数据表</title>
     <script type="text/javascript" src="/ads/js/jquery.min.js"></script>
     <script type="text/javascript" src="/ads/js/echarts.min.js"></script>
-    <script type="text/javascript" src="/ads/js/settings.js"></script>
     <style>
+        body{
+            background-color: rgb(240,240,240);
+        }
         .charts input{
             border:none;
         }
@@ -18,22 +20,21 @@
     <div id="chart_{{chart.id}}" style="height: 330px;"></div>
     <div style="margin-bottom: 20px"><p style="text-indent: 2em;line-height: 25px">{{chart.decipherment}}</p></div>
     <script>
-     $(
+        let host = "http://192.168.1.3:5000/";
+         $(
          function () {
-             var charDiv = document.getElementById('chart_{{chart.id}}');
-             var chart = echarts.init(charDiv, 'red', {render:'canvas'});
+             let charDiv = document.getElementById('chart_{{chart.id}}');
+             let chart = echarts.init(charDiv, 'red', {render:'canvas'});
              $.ajax({
                  type:'GET',
                  url: host + 'trend/chart/{{chart.id}}/',
                  dataType: 'json',
                  success:function(result){
-                     console.log(result);
                      chart.setOption(result);
                  }
              });
-
          }
-     )
+         )
     </script>
     <hr>
     {% endfor %}
