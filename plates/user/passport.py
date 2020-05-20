@@ -155,3 +155,80 @@ class LoginView(MethodView):
         ).decode('utf-8')
         return jwt_token
 
+
+class UserAuthClientsView(MethodView):
+    # 获取所有指定类型客户端信息和用户是否可登录
+    def get(self, uid):
+        t_client = request.args.get('t', 0)
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        # 查询用户的角色
+        role_statement = "SELECT `role_num` FROM `info_user` WHERE `id`=%s;"
+        cursor.execute(role_statement, uid)
+        user_role_num = cursor.fetchone()['role_num']
+        select_statement = "SELECT client.id, client.name, client.machine_code, client.is_manager, linkuser.user_id, linkuser.client_id, linkuser.expire_time " \
+                           "FROM `info_client` AS client LEFT JOIN `link_user_client` AS linkuser " \
+                           "ON client.id=linkuser.client_id AND linkuser.user_id=%s AND linkuser.expire_time>NOW() " \
+                           "WHERE client.is_manager=%s;"
+
+        cursor.execute(select_statement, (uid, t_client))
+        client_information = cursor.fetchall()
+        result = list()
+        for item in client_information:
+            new_item = dict()
+            new_item['id'] = item['id']
+            new_item['name'] = item['name']
+            new_item['machine_code'] = item['machine_code']
+            new_item['is_manager'] = '管理端' if item['is_manager'] else '普通端'
+            if user_role_num <= 2:
+                new_item['accessed'] = 1
+                new_item['expire_time'] = '3000-01-01'
+            else:
+                new_item['accessed'] = 1 if item['user_id'] else 0
+                new_item['expire_time'] = item['expire_time'].strftime('%Y-%m-%d') if item['expire_time'] else ''
+            result.append(new_item)
+        db_connection.close()
+        return jsonify({'message': '查询成功!', 'information': result})
+
+    # 修改可在某客户端的登录状态
+    def post(self, uid):
+        body_json = request.json
+        utoken = body_json.get('utoken')
+        operate_info = verify_json_web_token(utoken)
+        if not operate_info or operate_info['role_num'] > 2:
+            return jsonify({'message': '登录过期或不能进行这个操作.'}), 400
+        user_id = body_json.get('user_id', None)
+        client_id = body_json.get('client_id', None)
+        is_accessed = body_json.get('accessed', 0)
+        if not all([user_id, client_id]):
+            return jsonify({'message': '参数错误!'}), 400
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        # 查询用户的角色
+        role_statement = "SELECT `role_num` FROM `info_user` WHERE `id`=%s;"
+        cursor.execute(role_statement, user_id)
+        user_role = cursor.fetchone()['role_num']
+        if user_role <= 2:  # 运营以上的人员
+            db_connection.close()
+            return jsonify({'message': '不能对运营管理员这样修改.'}), 400
+        exist_statement = "SELECT `id`, `client_id`, `user_id` " \
+                          "FROM `link_user_client` " \
+                          "WHERE `client_id`=%s AND `user_id`=%s;"
+        cursor.execute(exist_statement, (client_id, user_id))
+        if is_accessed:
+            expire_time = datetime.datetime.strptime('3000-01-01', '%Y-%m-%d')
+        else:
+            expire_time = datetime.datetime.today()
+        if not cursor.fetchone():
+            insert_statement = "INSERT INTO `link_user_client` " \
+                               "(`client_id`, `user_id`, `expire_time`) " \
+                               "VALUES (%s, %s, %s);"
+            cursor.execute(insert_statement, (client_id, user_id, expire_time))
+        else:
+            update_statement = "UPDATE `link_user_client` " \
+                               "SET `expire_time`=%s " \
+                               "WHERE `client_id`=%s AND `user_id`=%s;"
+            cursor.execute(update_statement, (expire_time, client_id, user_id))
+        db_connection.commit()
+        db_connection.close()
+        return jsonify({'message': '修改成功', 'expire_time': expire_time.strftime('%Y-%m-%d')})

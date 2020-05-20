@@ -12,4 +12,5 @@ def get_client(machine_code):
     cursor = db_connection.get_cursor()
     cursor.execute(select_statement, machine_code)
     client = cursor.fetchone()
+    db_connection.close()
     return client

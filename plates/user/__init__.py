@@ -2,7 +2,7 @@
 # __Author__： zizle
 from flask import Blueprint
 from .verify_code import ImageCodeView
-from .passport import RegisterView, LoginView
+from .passport import RegisterView, LoginView, UserAuthClientsView
 from .views import UsersView, RetrieveUserView, UserInfoView, UserAvatarView
 from .variety import UserVarietyView
 
@@ -15,3 +15,4 @@ user_blp.add_url_rule('user/<int:uid>/', view_func=RetrieveUserView.as_view(name
 user_blp.add_url_rule('user/<int:uid>/base_info/', view_func=UserInfoView.as_view(name="uinfo"))  # 主动请求信息
 user_blp.add_url_rule('user/<int:uid>/avatar/', view_func=UserAvatarView.as_view(name="uvatar"))
 user_blp.add_url_rule('user/<int:uid>/variety/', view_func=UserVarietyView.as_view(name='uservariety'))
+user_blp.add_url_rule('user/<int:uid>/access_clients/', view_func=UserAuthClientsView.as_view(name='userclient'))

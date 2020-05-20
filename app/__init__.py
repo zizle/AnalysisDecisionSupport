@@ -4,7 +4,7 @@
 # Author: zizle
 # Flask要求app得是一个包
 import os
-from flask import Flask, redirect, send_from_directory
+from flask import Flask, request
 from flask_cors import CORS
 from utils.log_handler import config_logger_handler
 from plates.basic import basic_blp
@@ -24,17 +24,26 @@ app.config['JSON_AS_ASCII'] = False  # json返回数据支持中文
 
 app.logger.addHandler(config_logger_handler())  # 配置日志
 
+
 app.register_blueprint(basic_blp)
 app.register_blueprint(user_blp)
 app.register_blueprint(homepage_blp)
 app.register_blueprint(pserver_blp)
 app.register_blueprint(trend_blp)
 
+
 # 主页
 @app.route('/')
 def index():
     return "OK"
     # return redirect("/static/index.html")  # 重定向
+
+
+# # 拦截所有请求
+# @app.before_request
+# def before_request():
+#     print(request.headers)
+#     print('拦截了请求')
 
 
 # # favicon

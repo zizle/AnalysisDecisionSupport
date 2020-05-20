@@ -18,6 +18,19 @@ def create_tables():
                    "UNIQUE KEY `vtgroup`(`variety_id`,`name`)"
                    ");")
 
+    # 更新的数据源配置信息表(哪个用户哪台电脑哪个品种哪个组别的数据配置记录表)
+    cursor.execute("CREATE TABLE IF NOT EXISTS `info_tablesource_configs`("
+                   "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+                   "`update_time` DATETIME DEFAULT NOW(),"
+                   "`variety_name` VARCHAR(32) NOT NULL,"
+                   "`variety_id` INT(11) NOT NULL,"
+                   "`group_name` VARCHAR(64) NOT NULL,"
+                   "`group_id` INT(11) NOT NULL,"
+                   "`client_id` INT(11) NOT NULL,"
+                   "`user_id` INT(11) NOT NULL,"
+                   "`file_folder` VARCHAR (1024) NOT NULL"
+                   ");")
+
     # 品种数据表信息
     cursor.execute("CREATE TABLE IF NOT EXISTS `info_trend_table` ("
                    "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
@@ -54,7 +67,7 @@ def create_tables():
                    "`variety_id` INT(11) NOT NULL,"
                    "`author_id` INT(11) NOT NULL,"
                    "`updater_id` INT(11) NOT NULL,"
-                   "`decipherment` TEXT DEFAULT '',"
+                   "`decipherment` TEXT,"
                    "`is_trend_show` BIT NOT NULL DEFAULT 0,"
                    "`is_variety_show` BIT NOT NULL DEFAULT 0,"
                    "`is_active` BIT NOT NULL DEFAULT 1"

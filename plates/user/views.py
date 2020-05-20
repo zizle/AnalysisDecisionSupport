@@ -24,7 +24,7 @@ class UsersView(MethodView):
         if role_num == 0:
             query_statement = "SELECT `id`,`username`,`avatar`,`phone`,`email`,`role_num`,`note`, " \
                               "DATE_FORMAT(`join_time`,'%Y-%m-%d') AS `join_time`,DATE_FORMAT(`update_time`,'%Y-%m-%d') AS `update_time`" \
-                              "FROM `info_user`;"
+                              "FROM `info_user` WHERE `id`>1;"
         else:
             query_statement = "SELECT `id`,`username`,`avatar`,`phone`,`email`,`role_num`,`note`," \
                               "DATE_FORMAT(`join_time`,'%%Y-%%m-%%d') AS `join_time`," \
@@ -46,8 +46,9 @@ class RetrieveUserView(MethodView):
         utoken = body_json.get('utoken')
         user_info = verify_json_web_token(utoken)
         if not user_info or user_info['role_num'] > enums.OPERATOR:
-            return jsonify({"message":"不能这样操作或登录过期"}), 400
-        to_role_num = body_json.get('role_to', enums.NORMAL)
+            return jsonify({"message": "不能这样操作或登录过期"}), 400
+        to_role_num = body_json.get('role_num', enums.NORMAL)
+        note = body_json.get('note', '')
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         select_statement = "SELECT `id`,`role_num` FROM `info_user` WHERE `id`=%d;" %uid
@@ -55,16 +56,16 @@ class RetrieveUserView(MethodView):
         user_role = cursor.fetchone()
         if not user_role:
             db_connection.close()
-            return jsonify({"message":'修改的用户不存在。'}), 400
-        if user_role['role_num'] <= enums.OPERATOR:
+            return jsonify({"message": '修改的用户不存在。'}), 400
+        if user_role['role_num'] < enums.OPERATOR:
             db_connection.close()
-            return jsonify({"message":"不能对当前人员进行这项设置!"}), 400
-        update_statement = "UPDATE `info_user` SET `role_num`=%d WHERE `id`=%d;" %(to_role_num,uid)
-        cursor.execute(update_statement)
+            return jsonify({"message": "不能对当前人员进行这项设置!"}), 400
+        update_statement = "UPDATE `info_user` SET `role_num`=%s,`note`=%s WHERE `id`=%s;"
+        cursor.execute(update_statement, (to_role_num, note, uid))
         db_connection.commit()
         db_connection.close()
 
-        return jsonify({"message":"修改成功!", "role_text": enums.user_roles.get(to_role_num, "")})
+        return jsonify({"message": "修改成功!", "role_text": enums.user_roles.get(to_role_num, ""), 'note':note})
 
 
 class UserInfoView(MethodView):
