@@ -4,6 +4,7 @@ import jwt
 from hashlib import md5
 from settings import SECRET_KEY
 
+
 # hash密码
 def hash_user_password(password):
     hasher = md5()
@@ -15,8 +16,6 @@ def hash_user_password(password):
 
 # 检查密码
 def check_user_password(password, real_password):
-    # print("用户输入密码：", password)
-    # print('数据库密码：', real_password)
     if hash_user_password(password) == real_password:
         return True
     else:

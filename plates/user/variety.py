@@ -8,8 +8,9 @@ from utils.psd_handler import verify_json_web_token
 
 class UserVarietyView(MethodView):
     def get(self,uid):
-        query_statement = "SELECT `id`,`user_id`,`variety_id`,`is_active` " \
-                          "FROM `link_user_variety` WHERE `user_id`=%d;" % uid
+        query_statement = "SELECT linkuv.id,linkuv.user_id,linkuv.variety_id,linkuv.is_active,infov.name " \
+                          "FROM `link_user_variety` AS linkuv INNER JOIN `info_variety` AS infov " \
+                          "ON linkuv.user_id=%d AND linkuv.variety_id=infov.id;" % uid
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         cursor.execute(query_statement)
@@ -20,7 +21,7 @@ class UserVarietyView(MethodView):
         cursor.execute(query_user)
         user_info = cursor.fetchone()
         db_connection.close()
-        print(query_result)
+        # print(query_result)
         return jsonify({"message":"查询成功!", "variety": query_result, "user_info":user_info})
 
     def post(self, uid):
