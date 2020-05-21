@@ -37,3 +37,5 @@ DATABASES = {
 LOGGER_LEVEL = logging.DEBUG
 # jwt的有效时间
 JSON_WEB_TOKEN_EXPIRE = 1728000
+
+CLIENT_UPDATE_PATH = 'F:/DecisionClients/'

@@ -5,9 +5,12 @@ from .views import ClientView, ModuleView
 from .auth import AuthUserModuleView
 from .variety import VarietyView
 from .files import ModelFilesView
+from .update import UpdatingClientView, DownloadingClientView
 
 
 basic_blp = Blueprint(name='client', import_name=__name__, url_prefix='/')
+basic_blp.add_url_rule('update/', view_func=UpdatingClientView.as_view(name='update'))
+basic_blp.add_url_rule('downloading/', view_func=DownloadingClientView.as_view(name='download'))
 basic_blp.add_url_rule('client/', view_func=ClientView.as_view(name="client"))
 basic_blp.add_url_rule('module/', view_func=ModuleView.as_view(name="module"))
 basic_blp.add_url_rule('module/<int:mid>/', view_func=AuthUserModuleView.as_view(name="authmodule"))
