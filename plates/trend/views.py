@@ -6,8 +6,8 @@ import datetime
 import pandas as pd
 from hashlib import md5
 import pyecharts.options as opts
-from pyecharts.charts import Line, Bar, Grid
-from flask import request, jsonify, current_app, render_template
+from pyecharts.charts import Line, Bar
+from flask import request, jsonify, render_template
 from flask.views import MethodView
 from utils.psd_handler import verify_json_web_token
 from db import MySQLConnection
@@ -69,7 +69,7 @@ class TrendGroupView(MethodView):
 class UserTrendTableView(MethodView):
     """
     用户自己的数据表
-    get-获取所有自己已上传的数据表
+    get-获取所有自己已上传的数据表,(暂时前端未做使用)
     post-更新或新增一个数据表
     """
     def get(self, uid):
@@ -201,8 +201,12 @@ class UserTrendTableView(MethodView):
         table_values_df[0] = table_values_df[0].apply(lambda x: x.strftime('%Y-%m-%d'))
         # print('数据中最小时间:', min_date)
         # print('数据中最大时间:', max_date)
-        # 插入表头
-        table_values_df.loc[0] = table_headers
+        # 插入表头到数据中
+        table_values_df.loc[-1] = table_headers
+        table_values_df.index = table_values_df.index + 1
+        table_values_df.sort_index(inplace=True)
+        table_values_df.columns = table_headers
+
         table_values = table_values_df.values.tolist()  # 转为列表
         # 根据表头生成sql需要的语句片段
         sqls_segment = self.generate_sql_segment(table_headers)
@@ -439,7 +443,7 @@ class TrendTableView(MethodView):
         cursor = db_connection.get_cursor()
         # 先找到原数据表
         select_statement = "SELECT `id`,`sql_table` FROM `info_trend_table` WHERE `id`=%s AND `author_id`=%s;"
-        cursor.execute(select_statement,(tid, user_id))
+        cursor.execute(select_statement, (tid, user_id))
         fetch_one = cursor.fetchone()
         if not fetch_one:
             db_connection.close()
@@ -498,7 +502,7 @@ class UserTrendChartView(MethodView):
         if is_render:
             return render_template('trend/charts_render.html', user_charts=records)
         else:
-            return jsonify({'message':'查询成功', 'charts_info': records})
+            return jsonify({'message': '查询成功', 'charts_info': records})
 
     def post(self, uid):
         body_json = request.json
