@@ -137,3 +137,64 @@ class WarehouseVarietyView(MethodView):
         db_connection.close()
         return jsonify({'message': '操作成功!'})
 
+
+class WarehouseReceiptsView(MethodView):
+    def get(self, hid):
+        variety_en = request.args.get('v_en', None)
+        if variety_en:
+            try:
+                variety_en = variety_en.upper()
+            except Exception:
+                return jsonify({'message':'参数错误!', 'warehouses_receipts':{}})
+        print('品种:', variety_en)
+        # 获取指定仓库下的仓单详情和交割的品种
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+
+        if variety_en:
+            query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
+                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium " \
+                              "FROM `link_warehouse_variety` AS lwvtb " \
+                              "INNER JOIN `info_delivery_warehouse` AS infowhtb " \
+                              "ON lwvtb.warehouse_id=infowhtb.id " \
+                              "WHERE infowhtb.id=%s AND lwvtb.variety_en=%s;"
+            cursor.execute(query_statement,(hid, variety_en))
+        else:
+            query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
+                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium " \
+                              "FROM `link_warehouse_variety` AS lwvtb " \
+                              "INNER JOIN `info_delivery_warehouse` AS infowhtb " \
+                              "ON lwvtb.warehouse_id=infowhtb.id " \
+                              "WHERE infowhtb.id=%s;"
+            cursor.execute(query_statement, hid)
+
+        query_result = cursor.fetchall()
+        if len(query_result) <= 0:
+            db_connection.close()
+            return jsonify({'message':'获取仓单成功','warehouses_receipts': {}})
+        # 整理出品种列表以及品种的仓单
+        response_data = dict()
+        variety_receipts = list()
+        # 查询仓单sql
+        receipt_statement = "SELECT * " \
+                            "FROM `info_warehouse_receipt` " \
+                            "WHERE `variety_en`=%s AND `warehouse_code`=%s " \
+                            "ORDER BY `id` DESC " \
+                            "LIMIT 10;"
+        variety_first = query_result[0]
+        response_data['warehouse'] = variety_first['name']
+        response_data['varieties'] = variety_receipts
+        for variety_item in query_result:
+            variety_dict = dict()
+            variety_dict['name'] = variety_item['variety']
+            variety_dict['name_en'] = variety_item['variety_en']
+            variety_dict['linkman'] = variety_item['linkman']
+            variety_dict['links'] = variety_item['links']
+            variety_dict['premium'] = variety_item['premium']
+            cursor.execute(receipt_statement, (variety_item['variety_en'], variety_item['fixed_code']))
+            variety_dict['receipts'] = cursor.fetchall()
+            variety_receipts.append(variety_dict)
+        # print(response_data)
+        db_connection.close()
+        return jsonify({'message':'获取仓单成功','warehouses_receipts': response_data})
+

@@ -72,6 +72,7 @@ class VarietyView(MethodView):
             else:
                 parent_id = int(parent_id)
                 exchange_num = int(exchange_num)
+                variety_name_en = variety_name_en.upper()
                 insert_statement = "INSERT INTO `info_variety` (`name`,`name_en`,`parent_id`,`exchange`) VALUES (%s,%s,%s,%s);"
                 cursor.execute(insert_statement, (variety_name, variety_name_en, parent_id, exchange_num))
             new_vid = db_connection.insert_id()

@@ -44,21 +44,9 @@ class ProvinceWarehouseView(MethodView):
                           "ON infotb.id=lwhtb.warehouse_id " \
                           "WHERE infotb.area=%s " \
                           "GROUP BY infotb.id;"
-        # query_whstatement = "SELECT * " \
-        #                   "FROM `info_delivery_warehouse` " \
-        #                   "where area=%s;"
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         cursor.execute(query_statement, province)
         query_result = cursor.fetchall()
         db_connection.close()
-        # response_result = list()
-        #
-        # for warehouse_item in query_result:
-        #
-        # print(query_result)
-        for item in query_result:
-            print(item)
         return jsonify({'message': '获取数据成功!', 'warehouses': query_result})
-
-
