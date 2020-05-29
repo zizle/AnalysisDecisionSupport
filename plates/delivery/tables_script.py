@@ -47,8 +47,7 @@ def create_tables():
                    "`date` VARCHAR(8) NOT NULL,"
                    "`receipt` INT(11) DEFAULT 0,"
                    "`increase` INT(11) DEFAULT 0,"
-                   "`create_time` DATETIME DEFAULT NOW(),"
-                   "`is_active` BIT NOT NULL DEFAULT 1"
+                   "`create_time` DATETIME DEFAULT NOW()"
                    ");")
 
     db_connection.commit()

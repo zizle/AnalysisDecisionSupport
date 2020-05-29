@@ -26,16 +26,20 @@ class WarehouseView(MethodView):
 
     def post(self):
         body_json = request.json
+        fixed_code = body_json.get('fixed_code', None)
         area = body_json.get('area', None)
         name = body_json.get('name', None)
         short_name = body_json.get('short_name', None)
         addr = body_json.get('addr', None)
         longitude = body_json.get('longitude', None)
         latitude = body_json.get('latitude', None)
-        if not all([area, name, short_name, addr, longitude, latitude]):
+        if not all([fixed_code, area, name, short_name, addr, longitude, latitude]):
             return jsonify({'message': '参数错误!'}), 400
 
         try:
+            if len(fixed_code) != 4:
+                raise ValueError('编号格式有误')
+            int(fixed_code)
             longitude = float(longitude)
             latitude = float(latitude)
         except Exception:
@@ -43,20 +47,14 @@ class WarehouseView(MethodView):
         # 保存数据到数据库
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
-        # 查询简称是否存在
-        short_name_setatment = "SELECT `short_name` FROM `info_delivery_warehouse` where `short_name`=%s;"
-        cursor.execute(short_name_setatment, short_name)
-        short_name_exist = cursor.fetchone()
-        if short_name_exist:
+        # 查询编码是否存在
+        fixed_code_statement = "SELECT `fixed_code` FROM `info_delivery_warehouse` where `fixed_code`=%s;"
+        cursor.execute(fixed_code_statement, fixed_code)
+        fixed_code_exist = cursor.fetchone()
+        if fixed_code_exist:
             db_connection.close()
             return jsonify({'message': '仓库已存在!'}), 400
-        # 查询最大的id
-        max_id_select = "SELECT MAX(id) as max_id " \
-                        "FROM `info_delivery_warehouse`;"
-        cursor.execute(max_id_select)
-        maxid = cursor.fetchone()['max_id']
-        maxid = maxid + 1 if maxid else 1
-        fixed_code = "%04d" % maxid
+
         insert_statement = "INSERT INTO `info_delivery_warehouse` " \
                            "(`fixed_code`,`area`,`name`, `short_name`,`addr`,`longitude`,`latitude`) " \
                            "VALUES (%s,%s,%s,%s,%s,%s,%s);"
