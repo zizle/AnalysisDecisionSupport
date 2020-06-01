@@ -5,6 +5,7 @@
 # Flask要求app得是一个包
 import os
 from flask import Flask, request
+from werkzeug.routing import BaseConverter
 from flask_cors import CORS
 from utils.log_handler import config_logger_handler
 from plates.basic import basic_blp
@@ -16,8 +17,16 @@ from plates.delivery import delivery_blp
 from plates.geomap import gep_map_blp
 from settings import BASE_DIR
 
+
 static_folder = os.path.join(BASE_DIR, 'fileStorage')
 templates_folder = os.path.join(BASE_DIR, 'templates')
+
+
+class RegexConverter(BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
+
 
 app = Flask(__name__, static_url_path='/ads', static_folder=static_folder, template_folder=templates_folder)
 
@@ -25,7 +34,7 @@ CORS(app, supports_credemtials=True)  # 支持跨域
 app.config['JSON_AS_ASCII'] = False  # json返回数据支持中文
 
 app.logger.addHandler(config_logger_handler())  # 配置日志
-
+app.url_map.converters['reg'] = RegexConverter
 
 app.register_blueprint(basic_blp)
 app.register_blueprint(user_blp)

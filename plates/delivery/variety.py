@@ -21,9 +21,9 @@ class VarietyWarehouseView(MethodView):
         # 查询品种下的仓库信息
         select_statement = "SELECT infowhtb.id,infowhtb.area,infowhtb.name,infowhtb.addr,infowhtb.longitude,infowhtb.latitude," \
                            "lwhvtb.variety,lwhvtb.variety_en,lwhvtb.linkman,lwhvtb.links,lwhvtb.premium " \
-                           "FROM `link_warehouse_variety` AS lwhvtb " \
-                           "INNER JOIN `info_delivery_warehouse` AS infowhtb " \
-                           "ON lwhvtb.warehouse_id=infowhtb.id AND lwhvtb.variety_en=%s;"
+                           "FROM `info_warehouse_variety` AS lwhvtb " \
+                           "INNER JOIN `info_warehouse` AS infowhtb " \
+                           "ON lwhvtb.warehouse_code=infowhtb.fixed_code AND lwhvtb.variety_en=%s;"
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         cursor.execute(select_statement, variety_en)
@@ -39,9 +39,9 @@ class ProvinceWarehouseView(MethodView):
         query_statement = "SELECT infotb.id,infotb.area,infotb.name,infotb.addr,infotb.longitude,infotb.latitude," \
                           "lwhtb.linkman,lwhtb.links,lwhtb.premium, " \
                           "GROUP_CONCAT(lwhtb.variety) AS delivery_varieties " \
-                          "FROM `info_delivery_warehouse` AS infotb " \
-                          "LEFT JOIN `link_warehouse_variety` AS lwhtb " \
-                          "ON infotb.id=lwhtb.warehouse_id " \
+                          "FROM `info_warehouse` AS infotb " \
+                          "LEFT JOIN `info_warehouse_variety` AS lwhtb " \
+                          "ON infotb.fixed_code=lwhtb.warehouse_code " \
                           "WHERE infotb.area=%s " \
                           "GROUP BY infotb.id;"
         db_connection = MySQLConnection()
