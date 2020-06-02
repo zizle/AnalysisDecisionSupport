@@ -61,6 +61,15 @@ def create_tables():
                    "`create_time` DATETIME DEFAULT NOW()"
                    ");")
 
+    # 讨论交流表
+    cursor.execute("CREATE TABLE IF NOT EXISTS `info_discussion` ("
+                   "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+                   "`author_id` INT(11) NOT NULL,"
+                   "`content` VARCHAR(2048) NOT NULL,"
+                   "`create_time` DATETIME DEFAULT NOW(),"
+                   "`parent_id` INT(11) DEFAULT NULL"
+                   ");")
+
     db_connection.commit()
     db_connection.close()
 
