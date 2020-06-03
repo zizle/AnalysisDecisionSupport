@@ -97,7 +97,7 @@ class LoginView(MethodView):
         if not check_user_password(password, user_info['password']):
             return jsonify({"message": "用户名或密码错误!"}), 400
         now = datetime.datetime.now()
-        if user_info['role_num'] > 2:
+        if user_info['role_num'] > 4:
             # 查询是否能在此客户端登录
             can_login_statement = "SELECT `user_id`,`client_id` " \
                                   "FROM `link_user_client` " \

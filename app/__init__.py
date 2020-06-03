@@ -14,7 +14,6 @@ from plates.homepage import homepage_blp
 from plates.pserver import pserver_blp
 from plates.trend import trend_blp
 from plates.delivery import delivery_blp
-from plates.geomap import gep_map_blp
 from settings import BASE_DIR
 
 
@@ -42,7 +41,6 @@ app.register_blueprint(homepage_blp)
 app.register_blueprint(pserver_blp)
 app.register_blueprint(trend_blp)
 app.register_blueprint(delivery_blp)
-app.register_blueprint(gep_map_blp)
 
 
 # 主页

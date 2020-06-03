@@ -41,7 +41,7 @@ def create_tables():
 
     # 增加一个超级管理员
     cursor.execute("INSERT INTO `info_user` (`username`,`phone`,`role_num`, `password`) "
-                   "VALUES ('超级管理员','18866668787',1,'d6ca245ea010edcdf8fbdbe7c0943dad');")
+                   "VALUES ('超级管理员','18866668787',1,'7f4675985509569cd50a96d129a196ff');")
     db_connection.commit()
     db_connection.close()
 
