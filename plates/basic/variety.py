@@ -1,9 +1,12 @@
 # _*_ coding:utf-8 _*_
 # Author: zizle
+from operator import itemgetter
+from itertools import groupby
 from flask import request, jsonify, current_app
 from flask.views import MethodView
 from db import MySQLConnection
 from utils.psd_handler import verify_json_web_token
+from .enums import ZH_EXGS
 
 
 class VarietyView(MethodView):
@@ -27,13 +30,23 @@ class VarietyView(MethodView):
                 group_item['subs'] = cursor.fetchall()
             response_data = variety_groups
         else:
-            select_statement = "SELECT `id`,`name`,`name_en`, `parent_id`,`exchange` " \
+            select_statement = "SELECT `id`,`name`,`name_en`, `parent_id`,`exchange`,`sort` " \
                                "FROM `info_variety` " \
-                               "WHERE `parent_id` IS NOT NULL GROUP BY `exchange` ORDER BY `sort`;"
+                               "WHERE `parent_id` IS NOT NULL AND `is_active`=1;"
             cursor.execute(select_statement)
             query_result = cursor.fetchall()
-            response_data = query_result
+            response_data = self.key_sort_group(query_result)
+            print(response_data)
         return jsonify({"message":"获取信息成功!", "variety": response_data})
+
+    @staticmethod
+    def key_sort_group(sort_list):
+        """对列表中dict数据指定key排序，分组"""
+        sort_list.sort(key=itemgetter('sort'))  # sort排序；无返回值
+        result = dict()
+        for exchange, items in groupby(sort_list, key=itemgetter('exchange')):
+            result[ZH_EXGS.get(exchange)] = list(items)
+        return result
 
     def post(self):
         body_json = request.json
@@ -59,6 +72,7 @@ class VarietyView(MethodView):
             else:
                 parent_id = int(parent_id)
                 exchange_num = int(exchange_num)
+                variety_name_en = variety_name_en.upper()
                 insert_statement = "INSERT INTO `info_variety` (`name`,`name_en`,`parent_id`,`exchange`) VALUES (%s,%s,%s,%s);"
                 cursor.execute(insert_statement, (variety_name, variety_name_en, parent_id, exchange_num))
             new_vid = db_connection.insert_id()
