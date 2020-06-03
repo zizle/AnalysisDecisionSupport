@@ -3,19 +3,19 @@
 import os
 import logging
 
-SECRET_KEY = "cj3gmb1k2xzfq*odq5y-vts^+cv+p7suw+(_5#va%f70=tt5mp"
+SECRET_KEY = "cj3gnb1k2xzfq*odw5y-vts^+cv+p8suw+(_5#va%f70=tvt5mp"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 数据库配置
 DATABASES = {
-    'mysql2': {
+    'mysql': {
         'HOST': 'localhost',
         'PORT': 3306,
-        'USER': 'ads_worker',
-        'PASSWORD': 'rdyjxxxxads',
-        'NAME': 'analysis_decision'
+        'USER': 'decisionmaker',
+        'PASSWORD': 'ruidaads0603',
+        'NAME': 'analysisdsupport'
     },
-    'mysql': {
+    'mysql_deve': {
         'HOST': 'localhost',
         'PORT': 3306,
         'USER': 'root',

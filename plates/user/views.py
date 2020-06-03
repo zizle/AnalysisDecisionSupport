@@ -57,9 +57,15 @@ class RetrieveUserView(MethodView):
         if not user_role:
             db_connection.close()
             return jsonify({"message": '修改的用户不存在。'}), 400
+        if to_role_num < enums.OPERATOR:
+            db_connection.close()
+            return jsonify({'message': '不能修改为这个角色!'}), 400
         if user_role['role_num'] < enums.OPERATOR:
             db_connection.close()
             return jsonify({"message": "不能对当前人员进行这项设置!"}), 400
+        if user_info['role_num'] > enums.SUPERUSER and to_role_num < enums.COLLECTOR:
+            db_connection.close()
+            return jsonify({'message': '您不能设置运营管理员角色!'}), 400
         update_statement = "UPDATE `info_user` SET `role_num`=%s,`note`=%s WHERE `id`=%s;"
         cursor.execute(update_statement, (to_role_num, note, uid))
         db_connection.commit()
