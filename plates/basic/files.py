@@ -8,7 +8,6 @@ from settings import BASE_DIR
 class ModelFilesView(MethodView):
     def get(self):
         file_name=request.args.get('filename', None)
-        print(file_name)
         if not file_name:
             return jsonify({'message':"参数错误"}), 400
         file_folder = os.path.join(BASE_DIR, 'fileStorage/models/')

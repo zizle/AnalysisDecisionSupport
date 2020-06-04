@@ -11,8 +11,10 @@ DATABASES = {
     'mysql': {
         'HOST': 'localhost',
         'PORT': 3306,
-        'USER': 'decisionmaker',
-        'PASSWORD': 'ruidaads0603',
+        # 'USER': 'decisionmaker',
+        'USER': 'root',
+        # 'PASSWORD': 'ruidaads0603',
+        'PASSWORD': 'mysql',
         'NAME': 'analysisdsupport'
     },
     'mysql_deve': {

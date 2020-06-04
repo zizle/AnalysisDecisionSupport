@@ -41,6 +41,25 @@ class UsersView(MethodView):
 
 
 class RetrieveUserView(MethodView):
+    def post(self, uid):
+        # 管理员重置用户密码
+        body_json = request.json
+        utoken = body_json.get('utoken',None)
+        operate_user = verify_json_web_token(utoken)  # 操作者
+        print(operate_user)
+        if not operate_user or operate_user['role_num'] > 2:
+            return jsonify({'message': '没有权限进行这个操作!'}), 400
+        # 重置密码
+        new_password = hash_user_password('123456')
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        new_statement = "UPDATE `info_user` SET `password`=%s WHERE `id`=%s;"
+
+        cursor.execute(new_statement, (new_password, uid))
+        db_connection.commit()
+        db_connection.close()
+        return jsonify({'message':'重置成功!'})
+
     def patch(self, uid):
         body_json = request.json
         utoken = body_json.get('utoken')

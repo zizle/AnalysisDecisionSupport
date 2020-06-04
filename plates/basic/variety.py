@@ -1,7 +1,6 @@
 # _*_ coding:utf-8 _*_
 # Author: zizle
 from operator import itemgetter
-from itertools import groupby
 from flask import request, jsonify, current_app
 from flask.views import MethodView
 from db import MySQLConnection
@@ -36,16 +35,17 @@ class VarietyView(MethodView):
             cursor.execute(select_statement)
             query_result = cursor.fetchall()
             response_data = self.key_sort_group(query_result)
-            print(response_data)
         return jsonify({"message":"获取信息成功!", "variety": response_data})
 
     @staticmethod
     def key_sort_group(sort_list):
         """对列表中dict数据指定key排序，分组"""
-        sort_list.sort(key=itemgetter('sort'))  # sort排序；无返回值
         result = dict()
-        for exchange, items in groupby(sort_list, key=itemgetter('exchange')):
-            result[ZH_EXGS.get(exchange)] = list(items)
+        sort_list.sort(key=itemgetter('sort'))  # sort排序；无返回值
+        for item in sort_list:
+            if ZH_EXGS.get(item['exchange']) not in result:
+                result[ZH_EXGS.get(item['exchange'])] = list()
+            result[ZH_EXGS.get(item['exchange'])].append(item)
         return result
 
     def post(self):
