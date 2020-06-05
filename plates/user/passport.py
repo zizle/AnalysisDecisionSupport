@@ -28,6 +28,10 @@ class RegisterView(MethodView):
         phone = json_body.get('phone',None)
         email = json_body.get('email', '')
         image_code = json_body.get('imgcode', None)
+        agent = request.headers.get('User-Agent', '')
+        user_origin = ''
+        if agent.startswith('Delivery'):
+            user_origin = 'delivery'
         if not all([username, password, phone, image_code]):
             return jsonify({'message': '请提交完整数据.'})
         if not re.match(r'^[1][3-9][0-9]{9}$', phone):  # 手机号验证
@@ -42,9 +46,9 @@ class RegisterView(MethodView):
         cursor = db_connection.get_cursor()
         try:
 
-            save_statement = "INSERT INTO `info_user`(`username`,`password`,`phone`,`email`,`role_num`)" \
-                             "VALUES (%s,%s,%s,%s,%s);"
-            cursor.execute(save_statement,(username,password,phone,email, role_num))
+            save_statement = "INSERT INTO `info_user`(`username`,`password`,`phone`,`email`,`role_num`,`origin`)" \
+                             "VALUES (%s,%s,%s,%s,%s,%s);"
+            cursor.execute(save_statement,(username,password,phone,email, role_num,user_origin))
             # 写入第三方表(记录用户可登录的客户端表)
             new_user_id = db_connection.insert_id()
             client_id = int(client['id'])

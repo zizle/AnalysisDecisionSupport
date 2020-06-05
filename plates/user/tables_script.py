@@ -19,6 +19,7 @@ def create_tables():
                    "`email` VARCHAR(64) NOT NULL DEFAULT '',"
                    "`role_num` TINYINT(3) NOT NULL DEFAULT 5,"
                    "`note` VARCHAR(8) NOT NULL DEFAULT '',"
+                   "`origin` VARCHAR(10) DEFAULT '',"
                    "`is_active` BIT NOT NULL DEFAULT 1"
                    ");")
     # 用户-客户端表
