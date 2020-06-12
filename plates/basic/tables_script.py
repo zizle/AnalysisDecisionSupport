@@ -14,6 +14,7 @@ def create_tables():
                    "`join_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                    "`update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                    "`is_manager` BIT NOT NULL DEFAULT 0,"
+                   "`origin` VARCHAR(10) NOT NULL DEFAULT '',"
                    "`is_active` BIT NOT NULL DEFAULT 1"
                    ");")
 

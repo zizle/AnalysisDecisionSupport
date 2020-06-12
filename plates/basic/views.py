@@ -19,15 +19,19 @@ class ClientView(MethodView):
         cursor = db_connection.get_cursor()
         cursor.execute(query_statement, machine_code)
         client = cursor.fetchone()
+        agent = request.headers.get('User-Agent', '')
+        origin = ''
+        if agent.startswith('Delivery'):
+            origin = 'delivery'
         if not client:
             # 创建客户端
-            insert_statement = "INSERT INTO `info_client` (`machine_code`, `is_manager`) VALUES (%s, %s);"
-            cursor.execute(insert_statement, (machine_code, is_manager))
+            insert_statement = "INSERT INTO `info_client` (`machine_code`, `is_manager`,`origin`) VALUES (%s, %s,%s);"
+            cursor.execute(insert_statement, (machine_code, is_manager, origin))
         else:
             # 更新打开时间
             now = datetime.datetime.now()
-            update_statement = "UPDATE `info_client` SET `update_time`=%s WHERE `id`=%s;"
-            cursor.execute(update_statement, (now, client['id']))
+            update_statement = "UPDATE `info_client` SET `update_time`=%s,`origin`=%s WHERE `id`=%s;"
+            cursor.execute(update_statement, (now, origin, client['id']))
         db_connection.commit()
         db_connection.close()
         return jsonify({"message":"检测或注册客户端成功!",'machine_code': machine_code})

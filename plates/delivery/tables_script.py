@@ -43,16 +43,29 @@ def create_tables():
                    "`linkman` VARCHAR(32) DEFAULT '' DEFAULT '',"
                    "`links` VARCHAR(512) NOT NULL DEFAULT '',"
                    "`premium` VARCHAR(64) NOT NULL DEFAULT '',"
+                   "`receipt_unit` VARCHAR(32) DEFAULT '',"
                    "`create_time` DATETIME DEFAULT NOW(),"
                    "`update_time` DATETIME DEFAULT NOW(),"
                    "`is_active` BIT NOT NULL DEFAULT 1,"
                    "UNIQUE KEY `warevariety`(`warehouse_code`,`variety_en`)"
                    ");")
 
+    # 品种交割基本信息表
+    cursor.execute("CREATE TABLE IF NOT EXISTS `info_variety_delivery` ("
+                   "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+                   "`variety` VARCHAR(8) NOT NULL DEFAULT '',"
+                   "`variety_en` VARCHAR(4) NOT NULL DEFAULT '',"
+                   "`last_trade` VARCHAR(32) DEFAULT '' DEFAULT '',"
+                   "`receipt_expire` VARCHAR(512) NOT NULL DEFAULT '',"
+                   "`delivery_unit` VARCHAR(32) NOT NULL DEFAULT '',"
+                   "UNIQUE KEY `varietyaen`(`variety`,`variety_en`)"
+                   ");")
+
     # 仓单表
     cursor.execute("CREATE TABLE IF NOT EXISTS `info_warehouse_receipt` ("
                    "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
-                   "`warehouse_code` VARCHAR(4) NOT NULL,"
+                   "`warehouse_code` VARCHAR(4) DEFAULT '',"
+                   "`warehouse_name` VARCHAR(32) NOT NULL,"
                    "`variety` VARCHAR(8) NOT NULL DEFAULT '',"
                    "`variety_en` VARCHAR(4) NOT NULL DEFAULT '',"
                    "`date` VARCHAR(8) NOT NULL,"

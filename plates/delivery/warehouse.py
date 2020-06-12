@@ -59,6 +59,10 @@ class HouseNumberView(MethodView):
                                "VALUES (%s, %s);"
             cursor.execute(insert_statement, (name, fixed_code))
             db_connection.commit()
+            # 将仓单信息库中的对应简称的仓库编码写上
+            update_statement = "UPDATE `info_warehouse_receipt` SET `warehouse_code`=%s WHERE `warehouse_name`=%s;"
+            cursor.execute(update_statement, (fixed_code, name))
+            db_connection.commit()
             db_connection.close()
 
         return jsonify({'message': '保存成功!', 'fixed_code': fixed_code}), 201
@@ -82,7 +86,7 @@ class WarehouseView(MethodView):
         return jsonify({'message':'查询成功!', 'warehouses': records})
 
     def post(self):
-        # 批量增加仓库
+        # # 批量增加仓库
         # body_json = request.json
         # warehouses = body_json.get('warehouses', None)
         # db_connection = MySQLConnection()
@@ -98,11 +102,12 @@ class WarehouseView(MethodView):
         #     else:
         #         print('该仓库简称已存在')
         # for new_warehouse in warehouses:
-        #     new_fixed_code = all_fixed_codes_dict.get(new_warehouse['short_name'], None)
+        #     new_fixed_code = all_fixed_codes_dict.get(strQ2B(new_warehouse['short_name']), None)
         #     if not new_fixed_code:
         #         print("发现新仓库:{}!".format(new_warehouse['short_name']))
-        #         db_connection.close()
-        #         return jsonify({'message':'有新仓库{}'.format(new_warehouse['short_name'])}), 400
+        #         # print(new_warehouse)
+        #         # db_connection.close()
+        #         # return jsonify({'message':'有新仓库{}'.format(new_warehouse['short_name'])}), 400
         #     else:
         #         new_warehouse['fixed_code'] = new_fixed_code
         # save_list = list()
@@ -111,13 +116,12 @@ class WarehouseView(MethodView):
         #     item_list.append(house_item['fixed_code'])
         #     item_list.append(house_item['area'])
         #     item_list.append(house_item['name'])
-        #     item_list.append(house_item['short_name'])
+        #     item_list.append(strQ2B(house_item['short_name']))
         #     item_list.append(house_item['addr'])
         #     item_list.append(house_item['arrived'])
         #     item_list.append(house_item['longitude'])
         #     item_list.append(house_item['latitude'])
         #     save_list.append(item_list)
-        #
         # print(save_list)
         # insert_statement = "INSERT INTO `info_warehouse` " \
         #                    "(`fixed_code`,`area`,`name`,`short_name`,`addr`,`arrived`,`longitude`,`latitude`) " \
@@ -128,41 +132,43 @@ class WarehouseView(MethodView):
 
         # 新增单个仓库
         body_json = request.json
-        fixed_code = body_json.get('fixed_code', None)
         area = body_json.get('area', None)
         name = body_json.get('name', None)
-        short_name = body_json.get('short_name', None)
+        short_name = strQ2B(body_json.get('short_name', ''))
         addr = body_json.get('addr', None)
         arrived = body_json.get('arrived', '')
         longitude = body_json.get('longitude', None)
         latitude = body_json.get('latitude', None)
-        if not all([fixed_code, area, name, short_name, addr, longitude, latitude]):
+        if not all([area, name, short_name, addr, longitude, latitude]):
             return jsonify({'message': '参数错误!'}), 400
-
         try:
-            if len(fixed_code) != 4:
-                raise ValueError('编号格式有误')
-            int(fixed_code)
             longitude = float(longitude)
             latitude = float(latitude)
         except Exception:
             return jsonify({'message': '参数错误!'}), 400
-        # 保存数据到数据库
+        # 获取编号并保存数据到数据库
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
-        # 查询编码是否存在
-        fixed_code_statement = "SELECT `fixed_code` FROM `info_delivery_warehouse` where `fixed_code`=%s;"
-        cursor.execute(fixed_code_statement, fixed_code)
+        # 查询仓库简称对应编码是否存在
+        fixed_code_statement = "SELECT `fixed_code` FROM `info_warehouse_fixed_code` where `name`=%s;"
+        cursor.execute(fixed_code_statement, short_name)
         fixed_code_exist = cursor.fetchone()
-        if fixed_code_exist:
+        if not fixed_code_exist:
             db_connection.close()
-            return jsonify({'message': '仓库已存在!'}), 400
-
-        insert_statement = "INSERT INTO `info_delivery_warehouse` " \
+            return jsonify({'message': '请先添加该仓库简称信息!否则无法新增仓库.'}), 400
+        # 查询该编码是否已经在仓库信息中了
+        fixed_code = fixed_code_exist['fixed_code']
+        select_statement = "SELECT `id` FROM `info_warehouse` WHERE `fixed_code`=%s;"
+        cursor.execute(select_statement, fixed_code)
+        warehouse_exist = cursor.fetchone()
+        if warehouse_exist:
+            db_connection.close()
+            return jsonify({'message': '该仓库已存在...无需重复添加.'}), 400
+        # 保存仓库信息
+        insert_statement = "INSERT INTO `info_warehouse` " \
                            "(`fixed_code`,`area`,`name`, `short_name`,`addr`,`arrived`,`longitude`,`latitude`) " \
-                           "VALUES (%s,%s,%s,%s,%s,%s,%s);"
+                           "VALUES (%s,%s,%s,%s,%s,%s,%s,%s);"
         cursor.execute(insert_statement, (fixed_code, area, name, short_name, addr, arrived, longitude, latitude))
-
         db_connection.commit()
         db_connection.close()
         return jsonify({'message': '新增成功!'}), 201
@@ -170,7 +176,7 @@ class WarehouseView(MethodView):
 
 class WarehouseVarietyView(MethodView):
     def get(self, wcode):
-        print(wcode)
+        # print(wcode)
         # 获取当前仓库的信息和涉及的交割品种
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
@@ -209,7 +215,7 @@ class WarehouseVarietyView(MethodView):
         })
 
     def post(self, wcode):
-        # 批量增加仓库的可交割品种
+        # # 批量增加仓库的可交割品种
         # body_json = request.json
         # variety_message = body_json.get('variety_record', '')
         # # 查询所有的简称对应的仓库编号
@@ -242,13 +248,13 @@ class WarehouseVarietyView(MethodView):
         #     new_list.append(new_item['linkman'])
         #     new_list.append(new_item['links'])
         #     new_list.append(new_item['premium'])
+        #     new_list.append(new_item['receipt_unit'])
         #     save_list.append(new_list)
         #
         # print(save_list)
         # save_statement = "INSERT INTO `info_warehouse_variety` " \
-        #                  "(`warehouse_code`,`variety`,`variety_en`,`linkman`,`links`,`premium`) " \
-        #                  "VALUES (%s,%s,%s,%s,%s,%s);"
-        #
+        #                  "(`warehouse_code`,`variety`,`variety_en`,`linkman`,`links`,`premium`,`receipt_unit`) " \
+        #                  "VALUES (%s,%s,%s,%s,%s,%s,%s);"
         # cursor.executemany(save_statement, save_list)
         # db_connection.commit()
         # db_connection.close()
@@ -258,26 +264,27 @@ class WarehouseVarietyView(MethodView):
         variety_en = body_json.get('variety_en', None)
         variety_text = body_json.get('variety_text', None)
         if not all([wcode, variety_en, variety_text]):
-            return jsonify({'message':'参数错误'}), 400
+            return jsonify({'message': '参数错误'}), 400
 
         is_delivery = body_json.get('is_delivery', 0)
         delivery_msg = body_json.get('delivery_msg', None)
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
+        # 去除可交割品种
+        delete_statement = "DELETE FROM `info_warehouse_variety` " \
+                           "WHERE `warehouse_code`=%s AND `variety_en`=%s;"
+        cursor.execute(delete_statement, (wcode, variety_en))
         if is_delivery:
-            linkman = delivery_msg.get('linkman','')
+            linkman = delivery_msg.get('linkman', '')
             links = delivery_msg.get('links', '')
             premium = delivery_msg.get('premium', '')
+            receipt_unit = delivery_msg.get('receipt_unit', '')
             # 新增
             insert_statement = "INSERT INTO `info_warehouse_variety` " \
-                               "(`warehouse_code`,`variety`,`variety_en`,`linkman`,`links`,`premium`) " \
-                               "VALUES (%s,%s,%s,%s,%s,%s);"
-            cursor.execute(insert_statement, (wcode, variety_text, variety_en, linkman, links, premium))
-        else:
-            # 去除可交割品种
-            delete_statement = "DELETE FROM `info_warehouse_variety` " \
-                              "WHERE `warehouse_code`=%s AND `variety_en`=%s;"
-            cursor.execute(delete_statement, (wcode, variety_en))
+                               "(`warehouse_code`,`variety`,`variety_en`,`linkman`,`links`,`premium`,`receipt_unit`) " \
+                               "VALUES (%s,%s,%s,%s,%s,%s,%s);"
+            cursor.execute(insert_statement, (wcode, variety_text, variety_en, linkman, links, premium, receipt_unit))
+
         db_connection.commit()
         db_connection.close()
         return jsonify({'message': '操作成功!'})
@@ -291,25 +298,31 @@ class WarehouseReceiptsView(MethodView):
                 variety_en = variety_en.upper()
             except Exception:
                 return jsonify({'message':'参数错误!', 'warehouses_receipts':{}})
-        print('品种:', variety_en)
+        # print('品种:', variety_en)
         # 获取指定仓库下的仓单详情和交割的品种
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
 
         if variety_en:
             query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
-                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium " \
+                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
+                              "infovdly.last_trade,infovdly.receipt_expire,infovdly.delivery_unit " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
+                              "LEFT JOIN `info_variety_delivery` AS infovdly " \
+                              "ON infovdly.variety_en=lwvtb.variety_en " \
                               "WHERE infowhtb.id=%s AND lwvtb.variety_en=%s;"
             cursor.execute(query_statement,(hid, variety_en))
         else:
             query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
-                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium " \
+                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
+                              "infovdly.last_trade, infovdly.receipt_expire,infovdly.delivery_unit " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
+                              "LEFT JOIN `info_variety_delivery` AS infovdly " \
+                              "ON infovdly.variety_en=lwvtb.variety_en " \
                               "WHERE infowhtb.id=%s;"
             cursor.execute(query_statement, hid)
 
@@ -328,16 +341,21 @@ class WarehouseReceiptsView(MethodView):
                             "LIMIT 10;"
         variety_first = query_result[0]
         response_data['warehouse'] = variety_first['name']
+        response_data['short_name'] = variety_first['short_name']
         response_data['varieties'] = variety_receipts
         for variety_item in query_result:
             variety_dict = dict()
             variety_dict['name'] = variety_item['variety']
             variety_dict['name_en'] = variety_item['variety_en']
+            variety_dict['last_trade'] = variety_item['last_trade'] if variety_item['last_trade'] else ''
+            variety_dict['receipt_expire'] = variety_item['receipt_expire'] if variety_item['receipt_expire'] else ''
+            variety_dict['delivery_unit'] = variety_item['delivery_unit'] if variety_item['delivery_unit'] else ''
             variety_dict['linkman'] = variety_item['linkman']
             variety_dict['links'] = variety_item['links']
             variety_dict['premium'] = variety_item['premium']
             cursor.execute(receipt_statement, (variety_item['variety_en'], variety_item['fixed_code']))
             variety_dict['receipts'] = cursor.fetchall()
+            variety_dict['receipt_unit'] = variety_item['receipt_unit']
             variety_receipts.append(variety_dict)
         # print(response_data)
         db_connection.close()
