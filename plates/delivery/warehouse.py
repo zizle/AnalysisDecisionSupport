@@ -305,18 +305,24 @@ class WarehouseReceiptsView(MethodView):
 
         if variety_en:
             query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
-                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit " \
+                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
+                              "infovdly.last_trade,infovdly.receipt_expire,infovdly.delivery_unit " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
+                              "LEFT JOIN `info_variety_delivery` AS infovdly " \
+                              "ON infovdly.variety_en=lwvtb.variety_en " \
                               "WHERE infowhtb.id=%s AND lwvtb.variety_en=%s;"
             cursor.execute(query_statement,(hid, variety_en))
         else:
             query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
-                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit " \
+                              "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
+                              "infovdly.last_trade, infovdly.receipt_expire,infovdly.delivery_unit " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
+                              "LEFT JOIN `info_variety_delivery` AS infovdly " \
+                              "ON infovdly.variety_en=lwvtb.variety_en " \
                               "WHERE infowhtb.id=%s;"
             cursor.execute(query_statement, hid)
 
@@ -341,6 +347,9 @@ class WarehouseReceiptsView(MethodView):
             variety_dict = dict()
             variety_dict['name'] = variety_item['variety']
             variety_dict['name_en'] = variety_item['variety_en']
+            variety_dict['last_trade'] = variety_item['last_trade'] if variety_item['last_trade'] else ''
+            variety_dict['receipt_expire'] = variety_item['receipt_expire'] if variety_item['receipt_expire'] else ''
+            variety_dict['delivery_unit'] = variety_item['delivery_unit'] if variety_item['delivery_unit'] else ''
             variety_dict['linkman'] = variety_item['linkman']
             variety_dict['links'] = variety_item['links']
             variety_dict['premium'] = variety_item['premium']
