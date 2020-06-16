@@ -43,7 +43,7 @@ class TrendGroupView(MethodView):
             return jsonify({"message": "参数错误"}), 400
         user_info = verify_json_web_token(utoken)
         if not user_info or user_info['role_num'] > enums.RESEARCH:
-            return jsonify({"登录已过期或不能操作"})
+            return jsonify({"message": "登录已过期或不能操作"})
         user_id = user_info['id']
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()

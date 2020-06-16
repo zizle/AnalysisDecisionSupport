@@ -58,6 +58,7 @@ def create_tables():
                    "`last_trade` VARCHAR(32) DEFAULT '' DEFAULT '',"
                    "`receipt_expire` VARCHAR(512) NOT NULL DEFAULT '',"
                    "`delivery_unit` VARCHAR(32) NOT NULL DEFAULT '',"
+                   "`limit_holding` VARCHAR(32) DEFAULT '',"
                    "UNIQUE KEY `varietyaen`(`variety`,`variety_en`)"
                    ");")
 

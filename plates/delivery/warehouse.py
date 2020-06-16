@@ -306,7 +306,7 @@ class WarehouseReceiptsView(MethodView):
         if variety_en:
             query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
                               "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
-                              "infovdly.last_trade,infovdly.receipt_expire,infovdly.delivery_unit " \
+                              "infovdly.last_trade,infovdly.receipt_expire,infovdly.delivery_unit,infovdly.limit_holding " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
@@ -317,7 +317,7 @@ class WarehouseReceiptsView(MethodView):
         else:
             query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
                               "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
-                              "infovdly.last_trade, infovdly.receipt_expire,infovdly.delivery_unit " \
+                              "infovdly.last_trade, infovdly.receipt_expire,infovdly.delivery_unit,infovdly.limit_holding " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
@@ -356,8 +356,9 @@ class WarehouseReceiptsView(MethodView):
             cursor.execute(receipt_statement, (variety_item['variety_en'], variety_item['fixed_code']))
             variety_dict['receipts'] = cursor.fetchall()
             variety_dict['receipt_unit'] = variety_item['receipt_unit']
+            variety_dict['limit_holding'] = variety_item['limit_holding']
             variety_receipts.append(variety_dict)
         # print(response_data)
         db_connection.close()
-        return jsonify({'message':'获取仓单成功','warehouses_receipts': response_data})
+        return jsonify({'message': '获取仓单成功','warehouses_receipts': response_data})
 
