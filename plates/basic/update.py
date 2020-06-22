@@ -17,16 +17,27 @@ class UpdatingClientView(MethodView):
         identify = request.args.get('identify', 0)
         client_v = request.args.get('version')
         user_agent = request.headers['User-Agent']
+        system_bit = int(request.args.get('sbit', '32'))  # 默认32位的系统
         # print(user_agent, identify, client_v)
         if identify == '1' and user_agent == 'RuiDa_ADSClient':
             # print('更新管理端')
-            conf_path = os.path.join(CLIENT_UPDATE_PATH, 'INSIDE/cinfo.ini')
-            ready_path = os.path.join(CLIENT_UPDATE_PATH, 'INSIDE/')
+            # 判断客户端的系统位数
+            if system_bit == 64:
+                conf_path = os.path.join(CLIENT_UPDATE_PATH, 'INSIDE/X64/cinfo.ini')
+                ready_path = os.path.join(CLIENT_UPDATE_PATH, 'INSIDE/X64/')
+            else:
+                conf_path = os.path.join(CLIENT_UPDATE_PATH, 'INSIDE/X32/cinfo.ini')
+                ready_path = os.path.join(CLIENT_UPDATE_PATH, 'INSIDE/X32/')
         else:
             # print('更新用户端')
-            conf_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/cinfo.ini')
-            ready_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/')
+            if system_bit == 64:
+                conf_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/X64/cinfo.ini')
+                ready_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/X64/')
+            else:
+                conf_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/X32/cinfo.ini')
+                ready_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/X32/')
         # 获取服务端版本
+        current_app.logger.error("获取更新文件夹:{}".format(ready_path))
         conf = ConfigParser()
         conf.read(conf_path)
         server_version = str(conf.get('VERSION', 'VERSION'))
@@ -78,14 +89,21 @@ class DownloadingClientView(MethodView):
         user_agent = request.headers['User-Agent']
         identify = request.json.get('identify', 0)
         file_path = request.json.get('filename', '')
-        # print(file_path)
+        system_bit = int(request.json.get('sbit', '32'))  # 默认32位的系统
+        current_app.logger.error(file_path)
         if identify == '1' and user_agent == 'RuiDa_ADSClient':
-            file_path = os.path.join(CLIENT_UPDATE_PATH + 'INSIDE/', file_path)
+            if system_bit == 64:
+                file_path = os.path.join(CLIENT_UPDATE_PATH + 'INSIDE/X64/', file_path)
+            else:
+                file_path = os.path.join(CLIENT_UPDATE_PATH + 'INSIDE/X32/', file_path)
         else:
-            file_path = os.path.join(CLIENT_UPDATE_PATH + 'OUTSIDE/', file_path)
+            if system_bit == 64:
+                file_path = os.path.join(CLIENT_UPDATE_PATH + 'OUTSIDE/X64/', file_path)
+            else:
+                file_path = os.path.join(CLIENT_UPDATE_PATH + 'OUTSIDE/X32/', file_path)
         if not os.path.exists(file_path):
             # print('文件不存在。。。。。', file_path)
-            current_app.logger('客户端更新文件不存在:{}'.format(file_path))
+            current_app.logger.error('客户端更新文件不存在:{}'.format(file_path))
             return jsonify({'message': '文件不存在'}), 400
         else:
             return send_file(file_path)

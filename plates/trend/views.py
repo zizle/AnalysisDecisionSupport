@@ -43,7 +43,7 @@ class TrendGroupView(MethodView):
             return jsonify({"message": "参数错误"}), 400
         user_info = verify_json_web_token(utoken)
         if not user_info or user_info['role_num'] > enums.RESEARCH:
-            return jsonify({"登录已过期或不能操作"})
+            return jsonify({"message": "登录已过期或不能操作"})
         user_id = user_info['id']
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
@@ -191,6 +191,7 @@ class UserTrendTableView(MethodView):
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         table_headers = table_values.pop(0)  # 取出第一行为表头
+        free_row = table_values.pop(0)  # 再取出第一行为自由行(即上传表中的第三行数据)
         # 取得table_values[0]列中的最大值和最小值
         table_values_df = pd.DataFrame(table_values)
         table_values_df[0] = pd.to_datetime(table_values_df[0], format='%Y-%m-%d')  # 转为时间格式
@@ -201,6 +202,10 @@ class UserTrendTableView(MethodView):
         table_values_df[0] = table_values_df[0].apply(lambda x: x.strftime('%Y-%m-%d'))
         # print('数据中最小时间:', min_date)
         # print('数据中最大时间:', max_date)
+        # 插入自由行到数据中
+        table_values_df.loc[-1] = free_row
+        table_values_df.index = table_values_df.index + 1
+        table_values_df.sort_index(inplace=True)
         # 插入表头到数据中
         table_values_df.loc[-1] = table_headers
         table_values_df.index = table_values_df.index + 1
@@ -248,7 +253,7 @@ class UserTrendTableView(MethodView):
         """更新一张已存在的数据表(新增数据)"""
         max_date = pd.to_datetime(max_date, format='%Y-%m-%d')
         table_headers = table_values.pop(0)
-
+        free_row = table_values.pop(0)  # 去除自由数据行
         table_values_df = pd.DataFrame(table_values)
         table_values_df[0] = pd.to_datetime(table_values_df[0], format='%Y-%m-%d')
         new_max_date = (table_values_df[0].max()).strftime('%Y-%m-%d')  # 数据的最大时间

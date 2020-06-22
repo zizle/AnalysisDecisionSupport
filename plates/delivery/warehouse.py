@@ -304,9 +304,9 @@ class WarehouseReceiptsView(MethodView):
         cursor = db_connection.get_cursor()
 
         if variety_en:
-            query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
+            query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name,infowhtb.addr," \
                               "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
-                              "infovdly.last_trade,infovdly.receipt_expire,infovdly.delivery_unit " \
+                              "infovdly.last_trade,infovdly.receipt_expire,infovdly.delivery_unit,infovdly.limit_holding " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
@@ -315,9 +315,9 @@ class WarehouseReceiptsView(MethodView):
                               "WHERE infowhtb.id=%s AND lwvtb.variety_en=%s;"
             cursor.execute(query_statement,(hid, variety_en))
         else:
-            query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name," \
+            query_statement = "SELECT infowhtb.id,infowhtb.fixed_code,infowhtb.name,infowhtb.short_name,infowhtb.addr," \
                               "lwvtb.variety,lwvtb.variety_en,lwvtb.linkman,lwvtb.links,lwvtb.premium,lwvtb.receipt_unit," \
-                              "infovdly.last_trade, infovdly.receipt_expire,infovdly.delivery_unit " \
+                              "infovdly.last_trade, infovdly.receipt_expire,infovdly.delivery_unit,infovdly.limit_holding " \
                               "FROM `info_warehouse_variety` AS lwvtb " \
                               "INNER JOIN `info_warehouse` AS infowhtb " \
                               "ON lwvtb.warehouse_code=infowhtb.fixed_code " \
@@ -342,6 +342,7 @@ class WarehouseReceiptsView(MethodView):
         variety_first = query_result[0]
         response_data['warehouse'] = variety_first['name']
         response_data['short_name'] = variety_first['short_name']
+        response_data['addr'] = variety_first['addr']
         response_data['varieties'] = variety_receipts
         for variety_item in query_result:
             variety_dict = dict()
@@ -356,8 +357,9 @@ class WarehouseReceiptsView(MethodView):
             cursor.execute(receipt_statement, (variety_item['variety_en'], variety_item['fixed_code']))
             variety_dict['receipts'] = cursor.fetchall()
             variety_dict['receipt_unit'] = variety_item['receipt_unit']
+            variety_dict['limit_holding'] = variety_item['limit_holding']
             variety_receipts.append(variety_dict)
         # print(response_data)
         db_connection.close()
-        return jsonify({'message':'获取仓单成功','warehouses_receipts': response_data})
+        return jsonify({'message': '获取仓单成功','warehouses_receipts': response_data})
 
