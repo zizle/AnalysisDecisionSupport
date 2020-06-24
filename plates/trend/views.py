@@ -139,7 +139,7 @@ class UserTrendTableView(MethodView):
             # 查出已存在的最大数据时间
             select_max_date = "SELECT MAX(`column_0`) AS `max_date` " \
                               "FROM %s " \
-                              "WHERE id>1;" % sql_table
+                              "WHERE id>2;" % sql_table
             cursor.execute(select_max_date)
             max_date = cursor.fetchone()['max_date']
             # print(sql_table,max_date)

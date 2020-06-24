@@ -11,8 +11,6 @@ from settings import CLIENT_UPDATE_PATH
 
 
 class UpdatingClientView(MethodView):
-    update_list = dict()
-
     def get(self):
         identify = request.args.get('identify', 0)
         client_v = request.args.get('version')
@@ -48,10 +46,11 @@ class UpdatingClientView(MethodView):
             'file_list': {}
         }
         if client_v != server_version:
+            update_dict = dict()
             data['version'] = server_version
             data['update'] = True
-            self.find_files(ready_path, ready_path)
-            data['file_list'] = self.update_list
+            self.find_files(ready_path, ready_path, update_dict)
+            data['file_list'] = update_dict
         return jsonify({'message': '检测成功!', 'data': data})
 
     # 计算文件MD5
@@ -69,7 +68,7 @@ class UpdatingClientView(MethodView):
         return myHash.hexdigest()
 
     # 查找文件清单
-    def find_files(self, path, replace_str):
+    def find_files(self, path, replace_str, update_dict):
         fsinfo = os.listdir(path)
         for fn in fsinfo:
             temp_path = os.path.join(path, fn)
@@ -79,9 +78,9 @@ class UpdatingClientView(MethodView):
                 # print(fn)
                 fn = temp_path.replace(replace_str, '')
                 fn = '/'.join(fn.split('\\'))
-                self.update_list[fn] = file_md5
+                update_dict[fn] = file_md5
             else:
-                self.find_files(temp_path, replace_str)
+                self.find_files(temp_path, replace_str, update_dict)
 
 
 class DownloadingClientView(MethodView):
@@ -111,8 +110,6 @@ class DownloadingClientView(MethodView):
 
 # 更新交割独立客户端
 class UpdatingDeliveryView(MethodView):
-    update_list = dict()
-
     def get(self):
         client_v = request.args.get('version')
         conf_path = os.path.join(CLIENT_UPDATE_PATH, 'DELIVERY/cinfo.ini')
@@ -129,10 +126,11 @@ class UpdatingDeliveryView(MethodView):
             'file_list': {}
         }
         if client_v != server_version:
+            update_dict = dict()
             data['version'] = server_version
             data['update'] = True
-            self.find_files(ready_path, ready_path)
-            data['file_list'] = self.update_list
+            self.find_files(ready_path, ready_path, update_dict)
+            data['file_list'] = update_dict
         return jsonify({'message': '检测成功!', 'data': data})
 
     # 计算文件MD5
@@ -150,7 +148,7 @@ class UpdatingDeliveryView(MethodView):
         return myHash.hexdigest()
 
     # 查找文件清单
-    def find_files(self, path, replace_str):
+    def find_files(self, path, replace_str, update_dict):
         fsinfo = os.listdir(path)
         for fn in fsinfo:
             temp_path = os.path.join(path, fn)
@@ -160,9 +158,9 @@ class UpdatingDeliveryView(MethodView):
                 # print(fn)
                 fn = temp_path.replace(replace_str, '')
                 fn = '/'.join(fn.split('\\'))
-                self.update_list[fn] = file_md5
+                update_dict[fn] = file_md5
             else:
-                self.find_files(temp_path, replace_str)
+                self.find_files(temp_path, replace_str, update_dict)
 
 
 # 下载交割客户端
