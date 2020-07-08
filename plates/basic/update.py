@@ -35,7 +35,7 @@ class UpdatingClientView(MethodView):
                 conf_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/X32/cinfo.ini')
                 ready_path = os.path.join(CLIENT_UPDATE_PATH, 'OUTSIDE/X32/')
         # 获取服务端版本
-        current_app.logger.error("获取更新文件夹:{}".format(ready_path))
+        current_app.logger.info("获取更新文件夹:{}".format(ready_path))
         conf = ConfigParser()
         conf.read(conf_path)
         server_version = str(conf.get('VERSION', 'VERSION'))
@@ -89,7 +89,7 @@ class DownloadingClientView(MethodView):
         identify = request.json.get('identify', 0)
         file_path = request.json.get('filename', '')
         system_bit = int(request.json.get('sbit', '32'))  # 默认32位的系统
-        current_app.logger.error(file_path)
+        current_app.logger.info(file_path)
         if identify == '1' and user_agent == 'RuiDa_ADSClient':
             if system_bit == 64:
                 file_path = os.path.join(CLIENT_UPDATE_PATH + 'INSIDE/X64/', file_path)

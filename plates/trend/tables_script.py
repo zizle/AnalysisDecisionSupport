@@ -73,6 +73,19 @@ def create_tables():
                    "`is_active` BIT NOT NULL DEFAULT 1"
                    ");")
 
+    # 数据图表信息
+    cursor.execute("CREATE TABLE IF NOT EXISTS `info_trend_echart` ("
+                   "`id` INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+                   "`create_time` DATETIME NOT NULL DEFAULT NOW(),"
+                   "`update_time` DATETIME NOT NULL DEFAULT NOW(),"
+                   "`author_id` INT(11) NOT NULL,"
+                   "`title` VARCHAR(128) NOT NULL,"
+                   "`table_id` INT(11) NOT NULL,"
+                   "`decipherment` TEXT,"
+                   "`is_trend_show` BIT NOT NULL DEFAULT 0,"
+                   "`is_variety_show` BIT NOT NULL DEFAULT 0"
+                   ");")
+
     db_connection.commit()
     db_connection.close()
 
