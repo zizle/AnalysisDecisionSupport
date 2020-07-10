@@ -7,7 +7,7 @@ import pandas as pd
 from hashlib import md5
 import pyecharts.options as opts
 from pyecharts.charts import Line, Bar
-from flask import request, jsonify, render_template
+from flask import request, jsonify, render_template, current_app
 from flask.views import MethodView
 from utils.psd_handler import verify_json_web_token
 from db import MySQLConnection
@@ -139,7 +139,7 @@ class UserTrendTableView(MethodView):
             # 查出已存在的最大数据时间
             select_max_date = "SELECT MAX(`column_0`) AS `max_date` " \
                               "FROM %s " \
-                              "WHERE id>1;" % sql_table
+                              "WHERE id>2;" % sql_table
             cursor.execute(select_max_date)
             max_date = cursor.fetchone()['max_date']
             # print(sql_table,max_date)
@@ -194,6 +194,9 @@ class UserTrendTableView(MethodView):
         free_row = table_values.pop(0)  # 再取出第一行为自由行(即上传表中的第三行数据)
         # 取得table_values[0]列中的最大值和最小值
         table_values_df = pd.DataFrame(table_values)
+        if table_values_df.empty:
+            current_app.logger.error("user_id={}保存表:{}为空。".format(user_id, title))
+            return jsonify({"message": "待保存数据为空"}), 400
         table_values_df[0] = pd.to_datetime(table_values_df[0], format='%Y-%m-%d')  # 转为时间格式
         table_values_df.drop_duplicates(subset=[0],keep='last', inplace=True)  # 去除日期完全一致的数据行
         max_date = (table_values_df[0].max()).strftime('%Y-%m-%d')
@@ -563,6 +566,7 @@ class TrendChartOptionsView(MethodView):
             cursor.execute(query_statement)
             query_ret = cursor.fetchall()
             data_headers = query_ret.pop(0)
+            free_row = query_ret.pop(0)
             data_frame = pd.DataFrame(query_ret)
             db_connection.close()
             c = self.draw_chart(fetch_one, data_headers, data_frame)
@@ -770,7 +774,7 @@ class TrendChartOptionsView(MethodView):
 
         utoken = request.args.get('utoken')
         user_info = verify_json_web_token(utoken)
-        if not user_info or int(user_info['id']) > enums.RESEARCH:
+        if not user_info or int(user_info['role_num']) > enums.RESEARCH:
             return jsonify({"message": "登录过期或不能进行这样的操作。"}), 400
 
         decipherment = request.json.get('decipherment', None)  # 解说
@@ -796,13 +800,12 @@ class TrendChartOptionsView(MethodView):
     def delete(self, cid):
         utoken = request.args.get('utoken')
         user_info = verify_json_web_token(utoken)
-        print(user_info)
-        if not user_info or int(user_info['id']) > enums.RESEARCH:
-            return jsonify({"message":"登录过期或不能进行这样的操作。"}), 400
+        if not user_info or int(user_info['role_num']) > enums.RESEARCH:
+            return jsonify({"message": "登录过期或不能进行这样的操作。"}), 400
         delete_statement = "DELETE FROM `info_trend_chart` WHERE `id`=%s AND `author_id`=%s;"
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         cursor.execute(delete_statement, (cid, int(user_info['id'])))
         db_connection.commit()
         db_connection.close()
-        return jsonify({'message':'删除成功!'})
+        return jsonify({'message': '删除成功!'})
