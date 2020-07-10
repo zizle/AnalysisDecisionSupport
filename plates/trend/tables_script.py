@@ -81,6 +81,8 @@ def create_tables():
                    "`author_id` INT(11) NOT NULL,"
                    "`title` VARCHAR(128) NOT NULL,"
                    "`table_id` INT(11) NOT NULL,"
+                   "`variety_id` INT(11) NOT NULL,"
+                   "`options_file` VARCHAR(256) DEFAULT NULL,"
                    "`decipherment` TEXT,"
                    "`is_trend_show` BIT NOT NULL DEFAULT 0,"
                    "`is_variety_show` BIT NOT NULL DEFAULT 0"

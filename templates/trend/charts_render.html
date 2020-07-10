@@ -8,6 +8,7 @@
     <style>
         body{
             background-color: rgb(240,240,240);
+            margin: 5px;
         }
         .charts input{
             border:none;
@@ -16,13 +17,15 @@
 </head>
 <body>
 <script>
-    //let host = "http://127.0.0.1:5000/";
-    let host = "http://210.13.218.130:9002/";
+    let host = "http://127.0.0.1:5000/";
+    //let host = "http://210.13.218.130:9002/";
 </script>
 <div class="charts">
     {% for chart in user_charts %}
     <div id="chart_{{chart.id}}" style="height: 350px"></div>
-    <div style="margin-bottom: 20px"><p style="text-indent: 2em;line-height: 25px">{{chart.decipherment}}</p></div>
+    <div style="margin-bottom: 20px">
+        <p style="text-indent: 2em;line-height: 25px">{{chart.decipherment}}</p>
+    </div>
     <script>
          $(
          function () {
@@ -30,10 +33,10 @@
              let chart = echarts.init(charDiv, 'red', {render:'canvas'});
              $.ajax({
                  type:'GET',
-                 url: host + 'trend/chart/{{chart.id}}/',
+                 url: host + 'trend/table-chart/{{chart.id}}/',
                  dataType: 'json',
                  success:function(result){
-                     chart.setOption(result);
+                     chart.setOption(result.options);
                  }
              });
          }
