@@ -4,7 +4,6 @@
 # ------------------------
 import os
 import json
-import math
 import pandas as pd
 from datetime import datetime
 from flask import request, jsonify, render_template, current_app
@@ -12,6 +11,7 @@ from flask.views import MethodView
 from db import MySQLConnection
 from utils.psd_handler import verify_json_web_token
 from utils.file_handler import hash_filename
+from utils.charts import chart_options_handler
 from settings import BASE_DIR
 
 """关于图形的接口"""
@@ -152,103 +152,104 @@ class TrendChartRetrieveView(MethodView):
             if x_axis_end:
                 source_df = source_df[:int(x_axis_end)]
         # 处理完后的数据source_df进行绘图配置
-        # 1 x轴数据
-        option_of_xaxis = {
-            "type": "category",
-            "data": source_df[x_axis["col_index"]].values.tolist(),
-            'axisLabel': {
-                'rotate': -26,
-                'fontSize': 11
-            },
-        }
-        # 2 Y轴数据
-        y_axis = list()
-        series = list()
-        legend_data = list()
-        if len(options_content['y_left']) > 0:
-            y_axis.append({'type': 'value', 'name': options_content['axis_tags']['left']})
-        if len(options_content['y_right']) > 0:
-            y_axis.append({'type': 'value', 'name':options_content['axis_tags']['right']})
-        for y_left_opts_item in options_content['y_left']:  # 左轴数据
-            left_series = dict()
-            if y_left_opts_item['no_zero']:  # 本数据去0
-                cache_df = source_df[source_df[y_left_opts_item['col_index']] != '0']
-            else:
-                cache_df = source_df
-            left_series['type'] = y_left_opts_item['chart_type']
-            left_series['name'] = table_headers_dict[y_left_opts_item['col_index']]
-            left_series['yAxisIndex'] = 0
-            a = cache_df[x_axis['col_index']].values.tolist()  # 横轴数据
-            b = cache_df[y_left_opts_item['col_index']].values.tolist()  # 数值
-            left_series['data'] = [*zip(a, b)]
-            series.append(left_series)
-            legend_data.append(table_headers_dict[y_left_opts_item['col_index']])
-        for y_right_opts_item in options_content['y_right']:  # 右轴数据
-            right_series = dict()
-            if y_right_opts_item['no_zero']:  # 本数据去0
-                cache_df = source_df[source_df[y_right_opts_item['col_index']] != '0']
-            else:
-                cache_df = source_df
-            right_series['type'] = y_right_opts_item['chart_type']
-            right_series['name'] = table_headers_dict[y_right_opts_item['col_index']]
-            right_series['yAxisIndex'] = 1
-            a = cache_df[x_axis['col_index']].values.tolist()  # 横轴数据
-            b = cache_df[y_right_opts_item['col_index']].values.tolist()  # 数值
-            right_series['data'] = [*zip(a, b)]
-            series.append(right_series)
-            legend_data.append(table_headers_dict[y_right_opts_item['col_index']])
-        title_size = options_content['title']['textStyle']['fontSize']
-        options = {
-            "title": options_content["title"],
-            'legend': {'data': legend_data, 'bottom': 0},
-            'tooltip': {'axisPointer': {'type': 'cross'}},
-            'grid': {
-                'top': title_size + 15,
-                'left': 15,
-                'right': 15,
-                'bottom': 20 * (len(legend_data) / 3 + 1) + 16,
-                'show': False,
-                'containLabel': True,
-            },
-            'xAxis': option_of_xaxis,
-            'yAxis': y_axis,
-            'series': series,
-        }
-        if options_content['watermark']:
-            options['graphic'] = {
-                'type': 'group',
-                'rotation': math.pi / 4,
-                'bounding': 'raw',
-                'right': 110,
-                'bottom': 110,
-                'z': 100,
-                'children': [
-                    {
-                        'type': 'rect',
-                        'left': 'center',
-                        'top': 'center',
-                        'z': 100,
-                        'shape': {
-                            'width': 400,
-                            'height': 50
-                        },
-                        'style': {
-                            'fill': 'rgba(0,0,0,0.3)'
-                        }
-                    },
-                    {
-                        'type': 'text',
-                        'left': 'center',
-                        'top': 'center',
-                        'z': 100,
-                        'style': {
-                            'fill': '#fff',
-                            'text': options_content["watermark_text"],
-                            'font': 'bold 26px Microsoft YaHei'
-                        }
-                    }
-                ]
-            }
+        options = chart_options_handler(source_df, table_headers_dict, options_content)
+        # # 1 x轴数据
+        # option_of_xaxis = {
+        #     "type": "category",
+        #     "data": source_df[x_axis["col_index"]].values.tolist(),
+        #     'axisLabel': {
+        #         'rotate': -26,
+        #         'fontSize': 11
+        #     },
+        # }
+        # # 2 Y轴数据
+        # y_axis = list()
+        # series = list()
+        # legend_data = list()
+        # if len(options_content['y_left']) > 0:
+        #     y_axis.append({'type': 'value', 'name': options_content['axis_tags']['left']})
+        # if len(options_content['y_right']) > 0:
+        #     y_axis.append({'type': 'value', 'name':options_content['axis_tags']['right']})
+        # for y_left_opts_item in options_content['y_left']:  # 左轴数据
+        #     left_series = dict()
+        #     if y_left_opts_item['no_zero']:  # 本数据去0
+        #         cache_df = source_df[source_df[y_left_opts_item['col_index']] != '0']
+        #     else:
+        #         cache_df = source_df
+        #     left_series['type'] = y_left_opts_item['chart_type']
+        #     left_series['name'] = table_headers_dict[y_left_opts_item['col_index']]
+        #     left_series['yAxisIndex'] = 0
+        #     a = cache_df[x_axis['col_index']].values.tolist()  # 横轴数据
+        #     b = cache_df[y_left_opts_item['col_index']].values.tolist()  # 数值
+        #     left_series['data'] = [*zip(a, b)]
+        #     series.append(left_series)
+        #     legend_data.append(table_headers_dict[y_left_opts_item['col_index']])
+        # for y_right_opts_item in options_content['y_right']:  # 右轴数据
+        #     right_series = dict()
+        #     if y_right_opts_item['no_zero']:  # 本数据去0
+        #         cache_df = source_df[source_df[y_right_opts_item['col_index']] != '0']
+        #     else:
+        #         cache_df = source_df
+        #     right_series['type'] = y_right_opts_item['chart_type']
+        #     right_series['name'] = table_headers_dict[y_right_opts_item['col_index']]
+        #     right_series['yAxisIndex'] = 1
+        #     a = cache_df[x_axis['col_index']].values.tolist()  # 横轴数据
+        #     b = cache_df[y_right_opts_item['col_index']].values.tolist()  # 数值
+        #     right_series['data'] = [*zip(a, b)]
+        #     series.append(right_series)
+        #     legend_data.append(table_headers_dict[y_right_opts_item['col_index']])
+        # title_size = options_content['title']['textStyle']['fontSize']
+        # options = {
+        #     "title": options_content["title"],
+        #     'legend': {'data': legend_data, 'bottom': 0},
+        #     'tooltip': {'axisPointer': {'type': 'cross'}},
+        #     'grid': {
+        #         'top': title_size + 15,
+        #         'left': 15,
+        #         'right': 15,
+        #         'bottom': 20 * (len(legend_data) / 3 + 1) + 16,
+        #         'show': False,
+        #         'containLabel': True,
+        #     },
+        #     'xAxis': option_of_xaxis,
+        #     'yAxis': y_axis,
+        #     'series': series,
+        # }
+        # if options_content['watermark']:
+        #     options['graphic'] = {
+        #         'type': 'group',
+        #         'rotation': math.pi / 4,
+        #         'bounding': 'raw',
+        #         'right': 110,
+        #         'bottom': 110,
+        #         'z': 100,
+        #         'children': [
+        #             {
+        #                 'type': 'rect',
+        #                 'left': 'center',
+        #                 'top': 'center',
+        #                 'z': 100,
+        #                 'shape': {
+        #                     'width': 400,
+        #                     'height': 50
+        #                 },
+        #                 'style': {
+        #                     'fill': 'rgba(0,0,0,0.3)'
+        #                 }
+        #             },
+        #             {
+        #                 'type': 'text',
+        #                 'left': 'center',
+        #                 'top': 'center',
+        #                 'z': 100,
+        #                 'style': {
+        #                     'fill': '#fff',
+        #                     'text': options_content["watermark_text"],
+        #                     'font': 'bold 26px Microsoft YaHei'
+        #                 }
+        #             }
+        #         ]
+        #     }
 
         return options
 
@@ -305,3 +306,73 @@ class TrendChartRetrieveView(MethodView):
             if os.path.exists(options_file_path):
                 os.remove(options_file_path)
             return jsonify({'message': '删除成功!'})
+
+
+class TableChartsView(MethodView):
+
+    # 获取根据某个table的画出的所有数据表
+    def get(self, tid):
+        is_json = request.args.get('is_json', False)
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
+                           "FROM `info_trend_echart` WHERE `table_id`=%d;" % tid
+        cursor.execute(select_statement)
+        user_charts = cursor.fetchall()
+        db_connection.close()
+        if is_json:  # 返回json数据
+            for chart_item in user_charts:
+                chart_item['create_time'] = chart_item['create_time'].strftime("%Y-%m-%d")
+                chart_item['update_time'] = chart_item['update_time'].strftime("%Y-%m-%d")
+            return jsonify({"message": 'get charts of current table successfully!', "charts": user_charts})
+        else:  # 直接渲染数据
+            has_chart = 0
+            if len(user_charts) > 0:
+                has_chart = 1
+            return render_template('trend/charts_render.html', user_charts=user_charts, has_chart=has_chart)
+
+
+class VarietyPageCharts(MethodView):
+    # 品种页显示的图形
+    def get(self, vid):
+        is_json = request.args.get('is_json', False)
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
+                           "FROM `info_trend_echart` WHERE `variety_id`=%d AND `is_variety_show`=1;" % vid
+        cursor.execute(select_statement)
+        user_charts = cursor.fetchall()
+        db_connection.close()
+        if is_json:  # 返回json数据
+            for chart_item in user_charts:
+                chart_item['create_time'] = chart_item['create_time'].strftime("%Y-%m-%d")
+                chart_item['update_time'] = chart_item['update_time'].strftime("%Y-%m-%d")
+            return jsonify({"message": 'get charts of current table successfully!', "charts": user_charts})
+        else:  # 直接渲染数据
+            has_chart = 0
+            if len(user_charts) > 0:
+                has_chart = 1
+            return render_template('trend/charts_render.html', user_charts=user_charts, has_chart=has_chart)
+
+
+class TrendPageCharts(MethodView):
+    # 首页展示图形
+    def get(self):
+        is_json = request.args.get('is_json', False)
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
+                           "FROM `info_trend_echart` WHERE `is_trend_show`=1;"
+        cursor.execute(select_statement)
+        user_charts = cursor.fetchall()
+        db_connection.close()
+        if is_json:  # 返回json数据
+            for chart_item in user_charts:
+                chart_item['create_time'] = chart_item['create_time'].strftime("%Y-%m-%d")
+                chart_item['update_time'] = chart_item['update_time'].strftime("%Y-%m-%d")
+            return jsonify({"message": 'get charts of current table successfully!', "charts": user_charts})
+        else:  # 直接渲染数据
+            has_chart = 0
+            if len(user_charts) > 0:
+                has_chart = 1
+            return render_template('trend/charts_render.html', user_charts=user_charts, has_chart=has_chart)

@@ -13,6 +13,14 @@
         .charts input{
             border:none;
         }
+        .noChart{
+            width: 200px;
+            height: 50px;
+            position: absolute;
+            top: calc(50% - 100px);
+            left: calc(50% - 100px);
+            color: #f62626
+        }
     </style>
 </head>
 <body>
@@ -20,6 +28,9 @@
     let host = "http://127.0.0.1:5000/";
     //let host = "http://210.13.218.130:9002/";
 </script>
+{% if has_chart == 0 %}
+<div class="noChart">当前数据没有图形...</div>
+{% endif %}
 <div class="charts">
     {% for chart in user_charts %}
     <div id="chart_{{chart.id}}" style="height: 350px"></div>
