@@ -1,18 +1,17 @@
 # _*_ coding:utf-8 _*_
 # Author: zizle
 import os
-import ast
+import json
 import datetime
 import pandas as pd
 from hashlib import md5
-import pyecharts.options as opts
-from pyecharts.charts import Line, Bar
 from flask import request, jsonify, render_template, current_app
 from flask.views import MethodView
 from utils.psd_handler import verify_json_web_token
 from db import MySQLConnection
 from plates.user import enums
 from settings import BASE_DIR
+from utils.file_handler import hash_filename
 
 
 class TrendGroupView(MethodView):
@@ -482,8 +481,8 @@ class TrendTableView(MethodView):
                 return jsonify({"message": "这张表已烟消云散..."})
 
 
-class UserTrendChartView(MethodView):
-    def get(self, uid):
+class UserTrendChartView(MethodView):  # 现已关闭本接口
+    def get(self): # 临时接口：同步旧版已保存的图形
         """获取当前用户的所有设置的数据图"""
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
@@ -494,55 +493,98 @@ class UserTrendChartView(MethodView):
         except Exception:
             return jsonify({"message":'参数错误'}), 400
         if variety_id == 0:
-            query_statement = "SELECT * FROM `info_trend_chart` " \
-                              "WHERE `author_id`=%s;"
-            cursor.execute(query_statement, uid)
-        else:
-            query_statement = "SELECT * FROM `info_trend_chart` " \
-                              "WHERE `author_id`=%s  AND `variety_id`=%s;"
-            cursor.execute(query_statement, (uid, variety_id))
+            # query_statement = "SELECT * FROM `info_trend_chart` " \
+            #                   "WHERE `author_id`=%s;"
+            query_statement = "SELECT * FROM `info_trend_chart`;"
+            cursor.execute(query_statement)
         query_ret = cursor.fetchall()
         records = list()
         for item in query_ret:
-            item['create_time'] = item['create_time'].strftime('%Y-%m-%d')
-            item['update_time'] = item['update_time'].strftime('%Y-%m-%d')
+            item['create_time'] = item['create_time'].strftime('%Y-%m-%d %H:%M:%S')
+            item['update_time'] = item['update_time'].strftime('%Y-%m-%d %H:%M:%S')
             records.append(item)
         if is_render:
             return render_template('trend/charts_render.html', user_charts=records)
         else:
             return jsonify({'message': '查询成功', 'charts_info': records})
 
-    def post(self, uid):
+    # 临时接口：同步旧版已保存的图形
+    def post(self):
         body_json = request.json
-        title = body_json.get('title', None)
-        table_id = body_json.get('table_id', None)
-        bottom_axis = body_json.get('bottom_axis', None)
-        left_axis = body_json.get('left_axis', None)
-        if not all([title, table_id, bottom_axis, left_axis]):
-            return jsonify({'message': '参数不足'}), 400
-        is_watermark = body_json.get('is_watermark', False)
-        watermark = body_json.get('watermark', '')
-        decipherment = body_json.get('decipherment', '')
-        right_axis = body_json.get('right_axis', '{}')
-        # 通过table_id获取group_id 和variety_id
+        create_time = datetime.datetime.strptime(body_json.get('create_time'), '%Y-%m-%d %H:%M:%S')
+        update_time = datetime.datetime.strptime(body_json.get('update_time'), '%Y-%m-%d %H:%M:%S')
+        author_id = body_json.get('author_id')
+        title = body_json.get('title')
+        table_id = body_json.get('table_id')
+        variety_id = body_json.get('variety_id')
+        decipherment = body_json.get('decipherment')
+        is_trend_show = body_json.get('is_trend_show')
+        is_variety_show = body_json.get('is_variety_show')
+        chart_options = body_json.get('chart_options')
+
+        configs_filename = hash_filename(str(author_id) + '.json')
+
+        local_folder = 'fileStorage/chartconfigs/{}/{}/{}/'.format(author_id, create_time.strftime("%Y"), create_time.strftime("%m"))
+        save_folder = os.path.join(BASE_DIR, local_folder)
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+        save_path = os.path.join(save_folder, configs_filename)
+        config_sql_path = local_folder + configs_filename  # 保存到sql的地址
+        with open(save_path, 'w', encoding='utf-8') as f:
+            json.dump(chart_options, f, indent=4)
+        # print(config_sql_path, len(config_sql_path))
+        # 保存到sql中
+        insert_statement = "INSERT INTO `info_trend_echart` " \
+                           "(`create_time`,`update_time`,`author_id`,`title`,`table_id`,`variety_id`,`options_file`,`decipherment`,`is_trend_show`,`is_variety_show`)" \
+                           "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);"
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
-        table_info_statement = "SELECT `sql_table`,`group_id`,`variety_id` " \
-                               "FROM info_trend_table " \
-                               "WHERE `id`=%s;"
-        cursor.execute(table_info_statement, table_id)
-        fetch_table_one = cursor.fetchone()
-        sql_table = fetch_table_one['sql_table']
-        variety_id = fetch_table_one['variety_id']
-        group_id = fetch_table_one['group_id']
-        # save_chart
-        save_chart_statement = "INSERT INTO `info_trend_chart` (" \
-                               "`title`, `table_id`,`sql_table`,`is_watermark`,`watermark`,`variety_id`, `group_id`," \
-                               "`bottom_axis`,`left_axis`,`right_axis`,`author_id`,`updater_id`,`decipherment`) " \
-                               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);"
-        cursor.execute(save_chart_statement, (title, table_id, sql_table, is_watermark, watermark, variety_id, group_id,
-                                              bottom_axis, left_axis, right_axis, uid, uid, decipherment)
-                       )
-        db_connection.commit()
-        db_connection.close()
-        return jsonify({"message":'保存配置成功'}), 201
+        # 保存表信息
+        try:
+            cursor.execute(insert_statement, (create_time,update_time,author_id, title, table_id, variety_id, config_sql_path, decipherment, is_trend_show,is_variety_show))
+            db_connection.commit()
+        except Exception as e:
+            db_connection.close()
+            current_app.logger.error("用户={}保存图形配置错误:{}".format(author_id, e))
+            if os.path.exists(save_path):
+                os.remove(save_path)
+            return jsonify({"message": "保存失败了!"}), 400
+        else:
+            db_connection.close()
+            return jsonify({"message":"保存成功."}), 201
+
+
+    # def post(self, uid):
+    #     body_json = request.json
+    #     title = body_json.get('title', None)
+    #     table_id = body_json.get('table_id', None)
+    #     bottom_axis = body_json.get('bottom_axis', None)
+    #     left_axis = body_json.get('left_axis', None)
+    #     if not all([title, table_id, bottom_axis, left_axis]):
+    #         return jsonify({'message': '参数不足'}), 400
+    #     is_watermark = body_json.get('is_watermark', False)
+    #     watermark = body_json.get('watermark', '')
+    #     decipherment = body_json.get('decipherment', '')
+    #     right_axis = body_json.get('right_axis', '{}')
+    #     # 通过table_id获取group_id 和variety_id
+    #     db_connection = MySQLConnection()
+    #     cursor = db_connection.get_cursor()
+    #     table_info_statement = "SELECT `sql_table`,`group_id`,`variety_id` " \
+    #                            "FROM info_trend_table " \
+    #                            "WHERE `id`=%s;"
+    #     cursor.execute(table_info_statement, table_id)
+    #     fetch_table_one = cursor.fetchone()
+    #     sql_table = fetch_table_one['sql_table']
+    #     variety_id = fetch_table_one['variety_id']
+    #     group_id = fetch_table_one['group_id']
+    #     # save_chart
+    #     save_chart_statement = "INSERT INTO `info_trend_chart` (" \
+    #                            "`title`, `table_id`,`sql_table`,`is_watermark`,`watermark`,`variety_id`, `group_id`," \
+    #                            "`bottom_axis`,`left_axis`,`right_axis`,`author_id`,`updater_id`,`decipherment`) " \
+    #                            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);"
+    #     cursor.execute(save_chart_statement, (title, table_id, sql_table, is_watermark, watermark, variety_id, group_id,
+    #                                           bottom_axis, left_axis, right_axis, uid, uid, decipherment)
+    #                    )
+    #     db_connection.commit()
+    #     db_connection.close()
+    #     return jsonify({"message":'保存配置成功'}), 201

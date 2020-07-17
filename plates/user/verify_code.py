@@ -1,6 +1,7 @@
 # _*_ coding:utf-8 _*_
 # __Author__： zizle
 import os
+import time
 import random
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
@@ -16,14 +17,14 @@ class ImageCodeView(MethodView):
         if not image_code_id:
             return jsonify({'message':"参数错误!"}), 400
 
-        def get_random_color(): # 获取随机颜色的函数
-            return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+        def get_random_color():  # 获取随机颜色的函数
+            return random.randint(0, 240), random.randint(0, 240), random.randint(0, 240)
 
         # 生成一个图片对象
         img_obj = Image.new(
             'RGB',
             (90, 30),
-            get_random_color()
+            (240,240,240)
         )
         # 在生成的图片上写字符
         # 生成一个图片画笔对象

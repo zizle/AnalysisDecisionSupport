@@ -5,13 +5,13 @@
 import os
 import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import request, jsonify, render_template, current_app
 from flask.views import MethodView
 from db import MySQLConnection
 from utils.psd_handler import verify_json_web_token
 from utils.file_handler import hash_filename
-from utils.charts import chart_options_handler
+from utils.charts import chart_options_handler, season_chart_options_handler
 from settings import BASE_DIR
 
 """关于图形的接口"""
@@ -31,12 +31,14 @@ class TrendTableChartView(MethodView):
         cursor = db_connection.get_cursor()
         if not variety_id:
             select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
-                               "FROM `info_trend_echart` WHERE `author_id`=%s;"
+                               "FROM `info_trend_echart` WHERE `author_id`=%s " \
+                               "ORDER by `create_time` DESC;"
             cursor.execute(select_statement, (user_id, ))
         else:
             select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
                                "FROM `info_trend_echart` " \
-                               "WHERE `author_id`=%s AND `variety_id`=%s;"
+                               "WHERE `author_id`=%s AND `variety_id`=%s " \
+                               "ORDER by `create_time` DESC;"
             cursor.execute(select_statement, (user_id, variety_id))
         user_charts = cursor.fetchall()
         db_connection.close()
@@ -61,8 +63,7 @@ class TrendTableChartView(MethodView):
         table_id = body_json.get('table_id', None)
         decipherment = body_json.get('decipherment', '')
         if not all([chart_options, title, variety_id, table_id]):
-            print(chart_options, title, variety_id)
-            return jsonify({"message": "参数错误..."}), 400
+            return jsonify({"message": "参数错误...请填写图形标题名称"}), 400
         # configs file path
         configs_filename = hash_filename(str(user_id) + '.json')
         now = datetime.now()
@@ -76,22 +77,31 @@ class TrendTableChartView(MethodView):
             json.dump(chart_options, f, indent=4)
         # print(config_sql_path, len(config_sql_path))
         # 保存到sql中
-        insert_statement = "INSERT `info_trend_echart` " \
+        insert_statement = "INSERT INTO `info_trend_echart` " \
                            "(`author_id`,`title`,`table_id`,`variety_id`,`options_file`,`decipherment`) " \
                            "VALUES (%s,%s,%s,%s,%s,%s);"
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         # 保存表信息
-        cursor.execute(insert_statement, (user_id, title, table_id,variety_id, config_sql_path,decipherment))
-        db_connection.commit()
-        db_connection.close()
-        return jsonify({"message": "保存成功!"}), 201
+        try:
+            cursor.execute(insert_statement, (user_id, title, table_id,variety_id, config_sql_path,decipherment))
+            db_connection.commit()
+        except Exception as e:
+            db_connection.close()
+            current_app.logger.error("用户={}保存图形配置错误:{}".format(user_id, e))
+            if os.path.exists(save_path):
+                os.remove(save_path)
+            return jsonify({"message": "保存失败了!"}), 400
+        else:
+            db_connection.close()
+            return jsonify({"message": "保存成功!"}), 201
 
 
 class TrendChartRetrieveView(MethodView):
     # 获取某个图形的配置进行展示图形
     def get(self, cid):
         chart_id = cid
+        is_render = request.args.get("is_render", False)
         if not chart_id:
             return jsonify({"message": "query params `chart` is required!", "options": {}}), 400
         # 1根据id查询信息
@@ -108,6 +118,9 @@ class TrendChartRetrieveView(MethodView):
         chart_info = cursor.fetchone()
         if not chart_info:
             return jsonify({"message": "The chart options not found!", "options": {}}), 400
+        if is_render:
+            return render_template('trend/charts_render.html', user_charts=[chart_info])
+
         options_file_path = os.path.join(BASE_DIR, chart_info['options_file'])
         with open(options_file_path, 'r', encoding='utf-8') as f:
             options_content = json.load(f)
@@ -152,106 +165,53 @@ class TrendChartRetrieveView(MethodView):
             if x_axis_end:
                 source_df = source_df[:int(x_axis_end)]
         # 处理完后的数据source_df进行绘图配置
-        options = chart_options_handler(source_df, table_headers_dict, options_content)
-        # # 1 x轴数据
-        # option_of_xaxis = {
-        #     "type": "category",
-        #     "data": source_df[x_axis["col_index"]].values.tolist(),
-        #     'axisLabel': {
-        #         'rotate': -26,
-        #         'fontSize': 11
-        #     },
-        # }
-        # # 2 Y轴数据
-        # y_axis = list()
-        # series = list()
-        # legend_data = list()
-        # if len(options_content['y_left']) > 0:
-        #     y_axis.append({'type': 'value', 'name': options_content['axis_tags']['left']})
-        # if len(options_content['y_right']) > 0:
-        #     y_axis.append({'type': 'value', 'name':options_content['axis_tags']['right']})
-        # for y_left_opts_item in options_content['y_left']:  # 左轴数据
-        #     left_series = dict()
-        #     if y_left_opts_item['no_zero']:  # 本数据去0
-        #         cache_df = source_df[source_df[y_left_opts_item['col_index']] != '0']
-        #     else:
-        #         cache_df = source_df
-        #     left_series['type'] = y_left_opts_item['chart_type']
-        #     left_series['name'] = table_headers_dict[y_left_opts_item['col_index']]
-        #     left_series['yAxisIndex'] = 0
-        #     a = cache_df[x_axis['col_index']].values.tolist()  # 横轴数据
-        #     b = cache_df[y_left_opts_item['col_index']].values.tolist()  # 数值
-        #     left_series['data'] = [*zip(a, b)]
-        #     series.append(left_series)
-        #     legend_data.append(table_headers_dict[y_left_opts_item['col_index']])
-        # for y_right_opts_item in options_content['y_right']:  # 右轴数据
-        #     right_series = dict()
-        #     if y_right_opts_item['no_zero']:  # 本数据去0
-        #         cache_df = source_df[source_df[y_right_opts_item['col_index']] != '0']
-        #     else:
-        #         cache_df = source_df
-        #     right_series['type'] = y_right_opts_item['chart_type']
-        #     right_series['name'] = table_headers_dict[y_right_opts_item['col_index']]
-        #     right_series['yAxisIndex'] = 1
-        #     a = cache_df[x_axis['col_index']].values.tolist()  # 横轴数据
-        #     b = cache_df[y_right_opts_item['col_index']].values.tolist()  # 数值
-        #     right_series['data'] = [*zip(a, b)]
-        #     series.append(right_series)
-        #     legend_data.append(table_headers_dict[y_right_opts_item['col_index']])
-        # title_size = options_content['title']['textStyle']['fontSize']
-        # options = {
-        #     "title": options_content["title"],
-        #     'legend': {'data': legend_data, 'bottom': 0},
-        #     'tooltip': {'axisPointer': {'type': 'cross'}},
-        #     'grid': {
-        #         'top': title_size + 15,
-        #         'left': 15,
-        #         'right': 15,
-        #         'bottom': 20 * (len(legend_data) / 3 + 1) + 16,
-        #         'show': False,
-        #         'containLabel': True,
-        #     },
-        #     'xAxis': option_of_xaxis,
-        #     'yAxis': y_axis,
-        #     'series': series,
-        # }
-        # if options_content['watermark']:
-        #     options['graphic'] = {
-        #         'type': 'group',
-        #         'rotation': math.pi / 4,
-        #         'bounding': 'raw',
-        #         'right': 110,
-        #         'bottom': 110,
-        #         'z': 100,
-        #         'children': [
-        #             {
-        #                 'type': 'rect',
-        #                 'left': 'center',
-        #                 'top': 'center',
-        #                 'z': 100,
-        #                 'shape': {
-        #                     'width': 400,
-        #                     'height': 50
-        #                 },
-        #                 'style': {
-        #                     'fill': 'rgba(0,0,0,0.3)'
-        #                 }
-        #             },
-        #             {
-        #                 'type': 'text',
-        #                 'left': 'center',
-        #                 'top': 'center',
-        #                 'z': 100,
-        #                 'style': {
-        #                     'fill': '#fff',
-        #                     'text': options_content["watermark_text"],
-        #                     'font': 'bold 26px Microsoft YaHei'
-        #                 }
-        #             }
-        #         ]
-        #     }
-
+        if options_content['typec'] == 'single':
+            options = chart_options_handler(source_df, table_headers_dict, options_content)
+        elif options_content['typec'] == 'single_season':
+            options = season_chart_options_handler(source_df, options_content)
+        else:
+            options = {}
         return options
+
+    # 修改图形的配置信息
+    def post(self, cid):
+        body_json = request.json
+        utoken = body_json.get('utoken', None)
+        user_info = verify_json_web_token(utoken)
+        if not user_info:
+            return jsonify({"message": "登录已过期,重新登录后操作"}),400
+
+        start_year = body_json.get('start', '')
+        end_year = body_json.get('end', '')
+        try:
+            if start_year:
+                if int(start_year) <= 0 or len(start_year) != 4:
+                    raise ValueError('输入错误')
+            if end_year:
+                if int(end_year) <=0 or len(end_year) != 4:
+                    raise ValueError('输入错误')
+        except Exception as e:
+            return jsonify({"message": "错误的输入值"}), 400
+
+        # 连接数据库查找配置json
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        query_statement = "SELECT `id`,`options_file` " \
+                          "FROM `info_trend_echart` WHERE `id`=%s AND `author_id`=%s;"
+        cursor.execute(query_statement, (cid, user_info['id']))
+        result = cursor.fetchone()
+        db_connection.close()
+        if not result:
+            return jsonify({"message": "图形不存在了"}), 400
+        opts_file_path = result['options_file']
+        opts_file_path = os.path.join(BASE_DIR, opts_file_path)
+        with open(opts_file_path, 'r') as file:
+            option_content = json.load(file)
+        option_content['x_axis'][0]["start"] = str(start_year)
+        option_content['x_axis'][0]["end"] = str(end_year)
+        with open(opts_file_path, 'w', encoding='utf-8') as f:
+            json.dump(option_content, f, indent=4)
+        return jsonify({"message": "修改成功!"})
 
     # 修改图形的信息（首页显示,品种页显示,解说修改）
     def patch(self, cid):
@@ -316,7 +276,7 @@ class TableChartsView(MethodView):
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
-                           "FROM `info_trend_echart` WHERE `table_id`=%d;" % tid
+                           "FROM `info_trend_echart` WHERE `table_id`=%d ORDER by `create_time` DESC;" % tid
         cursor.execute(select_statement)
         user_charts = cursor.fetchall()
         db_connection.close()
@@ -339,7 +299,7 @@ class VarietyPageCharts(MethodView):
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
-                           "FROM `info_trend_echart` WHERE `variety_id`=%d AND `is_variety_show`=1;" % vid
+                           "FROM `info_trend_echart` WHERE `variety_id`=%d AND `is_variety_show`=1 ORDER by `create_time` DESC;" % vid
         cursor.execute(select_statement)
         user_charts = cursor.fetchall()
         db_connection.close()
@@ -362,7 +322,7 @@ class TrendPageCharts(MethodView):
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
-                           "FROM `info_trend_echart` WHERE `is_trend_show`=1;"
+                           "FROM `info_trend_echart` WHERE `is_trend_show`=1 ORDER by `create_time` DESC;"
         cursor.execute(select_statement)
         user_charts = cursor.fetchall()
         db_connection.close()

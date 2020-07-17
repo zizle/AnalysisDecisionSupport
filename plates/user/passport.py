@@ -3,6 +3,8 @@
 import re
 import jwt
 import time
+import json
+import base64
 import datetime
 from flask import request,jsonify,current_app
 from flask.views import MethodView
@@ -14,6 +16,13 @@ from settings import JSON_WEB_TOKEN_EXPIRE, SECRET_KEY
 
 class RegisterView(MethodView):
     def post(self):
+        # 前端用户名密码加密方式
+        # account = json.dumps({'phone': phone, 'password': password})
+        # account = base64.b64encode(account.encode('utf-8')).decode('utf-8')
+        # print('加密后', account)
+        # account = base64.b64decode(account.encode('utf-8'))
+        # account = json.loads(account.decode('utf-8'))
+        # print('解密后', account)
         json_body = request.json
         imgcid = json_body.get('image_code_id', '')
         machine_code = json_body.get('machine_code', None)
@@ -23,9 +32,12 @@ class RegisterView(MethodView):
         role_num = 5
         if client['is_manager'] == 1:
             role_num = 4
+        account = json_body.get('account', None)
+        user_account = base64.b64decode(account.encode('utf-8'))
+        user_account = json.loads(user_account.decode('utf-8'))
         username = json_body.get('username',None)
-        password = json_body.get('password',None)
-        phone = json_body.get('phone',None)
+        password = user_account.get('password',None)
+        phone = user_account.get('phone',None)
         email = json_body.get('email', '')
         image_code = json_body.get('imgcode', None)
         agent = request.headers.get('User-Agent', '')
@@ -75,25 +87,43 @@ class LoginView(MethodView):
             message = '登录已过期'
         else:
             user_info['utoken'] = utoken
+            # 更新登录时间
+            db_connection = MySQLConnection()
+            cursor = db_connection.get_cursor()
+            update_statement = "UPDATE `info_user` SET `update_time`=%s WHERE `id`=%s;"
+            cursor.execute(update_statement, (datetime.datetime.now(), user_info['id']))  # 更新登录时间
+            db_connection.commit()
+            db_connection.close()
             message = "登录成功!"
         return jsonify({"message": message,"user_data": user_info})
 
     def post(self):
+        # 前端用户名密码加密方式
+        # account = json.dumps({'phone': phone, 'password': password})
+        # account = base64.b64encode(account.encode('utf-8')).decode('utf-8')
+        # print('加密后', account)
+        # account = base64.b64decode(account.encode('utf-8'))
+        # account = json.loads(account.decode('utf-8'))
+        # print('解密后', account)
         body_json = request.json
         machine_code = body_json.get("machine_code", None)
+        account = body_json.get('account', None)
         client = get_client(machine_code)
-        if not client:
-            return jsonify({"message":"参数错误,登录失败。"}), 400
-        username = body_json.get("username", '')
-        phone = body_json.get("phone", '')
-        password = body_json.get("password", '')
+        if not client or not account:
+            return jsonify({"message": "参数错误,登录失败。"}), 400
+        user_account = base64.b64decode(account.encode('utf-8'))
+        user_account = json.loads(user_account.decode('utf-8'))
+        phone = user_account.get('phone', None)
+        password = user_account.get('password', None)
+        if not all([phone, password]):
+            return jsonify({"message": "参数错误,登录失败。"}), 400
         # 查询数据库
         select_statement = "SElECT `id`,`username`,`phone`,`avatar`,`email`,`role_num`,`note`,`password` " \
                            "FROM `info_user` " \
-                           "WHERE (`username`=%s OR `phone`=%s) AND `is_active`=1;"
+                           "WHERE `phone`=%s AND `is_active`=1;"
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
-        cursor.execute(select_statement,(username, phone))
+        cursor.execute(select_statement, (phone,))
         user_info = cursor.fetchone()
         if not user_info:
             db_connection.close()

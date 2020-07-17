@@ -10,6 +10,11 @@
             background-color: rgb(240,240,240);
             margin: 5px;
         }
+        .charts .chart-container{
+            display: inline-block;
+            padding: 0 5px 10px 10px;
+            vertical-align: top;
+        }
         .charts input{
             border:none;
         }
@@ -19,41 +24,43 @@
             position: absolute;
             top: calc(50% - 100px);
             left: calc(50% - 100px);
-            color: #f62626
+            color: #F63636
         }
     </style>
 </head>
 <body>
 <script>
     let host = "http://127.0.0.1:5000/";
-    //let host = "http://210.13.218.130:9002/";
 </script>
 {% if has_chart == 0 %}
 <div class="noChart">当前数据没有图形...</div>
 {% endif %}
 <div class="charts">
     {% for chart in user_charts %}
-    <div id="chart_{{chart.id}}" style="height: 350px"></div>
-    <div style="margin-bottom: 20px">
-        <p style="text-indent: 2em;line-height: 25px">{{chart.decipherment}}</p>
-    </div>
-    <script>
-         $(
-         function () {
-             let charDiv = document.getElementById('chart_{{chart.id}}');
-             let chart = echarts.init(charDiv, 'red', {render:'canvas'});
-             $.ajax({
-                 type:'GET',
-                 url: host + 'trend/table-chart/{{chart.id}}/',
-                 dataType: 'json',
-                 success:function(result){
-                     chart.setOption(result.options);
-                 }
-             });
-         }
-         )
-    </script>
+    <div class="chart-container">
     <hr>
+        <div id="chart_{{chart.id}}" style="height:337px; width: 600px;"></div>
+        <div style="margin-bottom: 10px;color:#2f5574;font-weight: bold">
+            <div style="text-indent: 2em;line-height:25px; font-size: 13px">{{chart.decipherment}}</div>
+        </div>
+        <script>
+             $(
+             function () {
+                 let charDiv = document.getElementById('chart_{{chart.id}}');
+                 let chart = echarts.init(charDiv, 'red', {render:'canvas'});
+                 $.ajax({
+                     type:'GET',
+                     url: host + 'trend/table-chart/{{chart.id}}/',
+                     dataType: 'json',
+                     success:function(result){
+                         chart.setOption(result.options);
+                     }
+                 });
+             }
+             )
+        </script>
+
+    </div>
     {% endfor %}
 </div>
 </body>
