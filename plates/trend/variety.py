@@ -23,18 +23,27 @@ class VarietyTrendTableView(MethodView):
         user_infos_all = cursor.fetchall()
         user_infos_all = {user_item['id']: user_item['username'] for user_item in user_infos_all}
         if group_id == 0:  # 获取全部
-            query_statement = "SELECT * " \
-                              "FROM `info_trend_table` " \
-                              "WHERE `variety_id`=%d AND `is_active`=1;" % vid
+            # query_statement = "SELECT * " \
+            #                   "FROM `info_trend_table` " \
+            #                   "WHERE `variety_id`=%d AND `is_active`=1 ORDER BY `variety_id`,`suffix_index`;" % vid
+
+            query_statement = "SELECT ttable.*,(SELECT COUNT(tchart.id) FROM `info_trend_echart` AS tchart WHERE ttable.id=tchart.table_id ) AS `charts_count` " \
+                              "FROM `info_trend_table` AS ttable " \
+                              "WHERE ttable.variety_id=%d AND ttable.is_active=1 ORDER BY ttable.variety_id,ttable.suffix_index;" % vid
 
         else:
-            query_statement = "SELECT * " \
-                              "FROM `info_trend_table` " \
-                              "WHERE `variety_id`=%d AND `is_active`=1 AND `group_id`=%d;" % (vid, group_id)
+            query_statement = "SELECT ttable.*,(SELECT COUNT(tchart.id) FROM `info_trend_echart` AS tchart WHERE ttable.id=tchart.table_id ) AS `charts_count` " \
+                              "FROM `info_trend_table` AS ttable " \
+                              "WHERE ttable.variety_id=%d AND ttable.is_active=1 AND ttable.group_id=%d ORDER BY ttable.variety_id,ttable.suffix_index;" % (vid, group_id)
+
+            # query_statement = "SELECT * " \
+            #                   "FROM `info_trend_table` " \
+            #                   "WHERE `variety_id`=%d AND `is_active`=1 AND `group_id`=%d ORDER BY `variety_id`,`suffix_index`;" % (vid, group_id)
 
         cursor.execute(query_statement)
         db_connection.close()
         query_result = cursor.fetchall()
+
         for record_item in query_result:
             record_item['author'] = user_infos_all[record_item['author_id']]
             record_item['updater'] = user_infos_all[record_item['updater_id']]

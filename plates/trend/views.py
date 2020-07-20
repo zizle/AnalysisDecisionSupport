@@ -224,11 +224,11 @@ class UserTrendTableView(MethodView):
         try:
             # 增加数据表的信息表
             insert_statement = "INSERT INTO `info_trend_table` (`title`,`title_md5`,`suffix_index`,`sql_table`,`group_id`," \
-                               "`variety_id`,`author_id`,`updater_id`,`origin`,`min_date`,`max_date`) " \
-                               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);"
+                               "`variety_id`,`author_id`,`updater_id`,`origin`,`min_date`,`max_date`,`new_count`) " \
+                               "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);"
             cursor.execute(insert_statement,
                            (title, title_md5, suffix_index, sql_table_name, group_id,
-                            variety_id, user_id, user_id, origin,min_date, max_date)
+                            variety_id, user_id, user_id, origin,min_date, max_date, table_values_df.shape[0])
                            )
             # 创建实际数据表
             create_table_statement = "CREATE TABLE IF NOT EXISTS %s (" \
@@ -265,6 +265,15 @@ class UserTrendTableView(MethodView):
         table_values_df[0] = table_values_df[0].apply(lambda x: x.strftime('%Y-%m-%d'))  # 日期再转为字符串
         if table_values_df.empty:
             # print(sql_table, "空增加")
+            db_connection = MySQLConnection()
+            cursor = db_connection.get_cursor()
+            today = datetime.datetime.today()
+            update_info_statement = "UPDATE `info_trend_table` SET " \
+                                    "`update_time`=%s,`updater_id`=%s,`new_count`=%s " \
+                                    "WHERE `sql_table`=%s;"
+            cursor.execute(update_info_statement, (today, user_id, 0, sql_table))
+            db_connection.commit()
+            db_connection.close()
             return jsonify({'message': "更新成功!"})
         else:
             # print(sql_table, '有数据')
@@ -282,9 +291,9 @@ class UserTrendTableView(MethodView):
                 # 更新数据信息
                 today = datetime.datetime.today()
                 update_info_statement = "UPDATE `info_trend_table` SET " \
-                                        "`update_time`=%s,`updater_id`=%s,`max_date`=%s " \
+                                        "`update_time`=%s,`updater_id`=%s,`max_date`=%s,`new_count`=%s " \
                                         "WHERE `sql_table`=%s;"
-                cursor.execute(update_info_statement, (today, user_id, new_max_date, sql_table))
+                cursor.execute(update_info_statement, (today, user_id, new_max_date, table_values_df.shape[0], sql_table))
                 db_connection.commit()
             except Exception as e:
                 db_connection.rollback()

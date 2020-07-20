@@ -47,7 +47,8 @@ def create_tables():
                    "`origin` VARCHAR(256) DEFAULT '',"
                    "`min_date` VARCHAR(10) DEFAULT '',"
                    "`max_date` VARCHAR(10) DEFAULT '',"
-                   "`is_active` BIT NOT NULL DEFAULT 1"
+                   "`is_active` BIT NOT NULL DEFAULT 1,"
+                   "`new_count` INT(11) NOT NULL DEFAULT 0"
                    ");")
 
     # 配置好的数据图表信息

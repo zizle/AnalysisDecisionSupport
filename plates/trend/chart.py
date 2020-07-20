@@ -30,12 +30,12 @@ class TrendTableChartView(MethodView):
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         if not variety_id:
-            select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
+            select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show`,`suffix_index` " \
                                "FROM `info_trend_echart` WHERE `author_id`=%s " \
                                "ORDER by `create_time` DESC;"
             cursor.execute(select_statement, (user_id, ))
         else:
-            select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show` " \
+            select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show`,`suffix_index` " \
                                "FROM `info_trend_echart` " \
                                "WHERE `author_id`=%s AND `variety_id`=%s " \
                                "ORDER by `create_time` DESC;"
@@ -85,6 +85,8 @@ class TrendTableChartView(MethodView):
         # 保存表信息
         try:
             cursor.execute(insert_statement, (user_id, title, table_id,variety_id, config_sql_path,decipherment))
+            new_id = db_connection.insert_id()
+            cursor.execute("UPDATE `info_trend_echart` SET `suffix_index`=%d WHERE `id`=%d;" % (new_id, new_id))
             db_connection.commit()
         except Exception as e:
             db_connection.close()
