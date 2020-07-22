@@ -84,12 +84,14 @@ class UserTrendTableView(MethodView):
         if group_id == 0:  # 获取全部
             query_statement = "SELECT * " \
                               "FROM `info_trend_table` " \
-                              "WHERE `author_id`=%d AND `variety_id`=%d AND `is_active`=1;" % (uid, variety_id)
+                              "WHERE `author_id`=%d AND `variety_id`=%d AND `is_active`=1 " \
+                              "ORDER BY `suffix_index`, `update_time` DESC;" % (uid, variety_id)
 
         else:
             query_statement = "SELECT * " \
                               "FROM `info_trend_table` " \
-                              "WHERE `author_id`=%d AND `variety_id`=%d AND `is_active`=1 AND `group_id`=%d;" % (uid, variety_id, group_id)
+                              "WHERE `author_id`=%d AND `variety_id`=%d AND `is_active`=1 AND `group_id`=%d " \
+                              "ORDER BY `suffix_index`, `update_time` DESC;" % (uid, variety_id, group_id)
 
         cursor.execute(query_statement)
         db_connection.close()

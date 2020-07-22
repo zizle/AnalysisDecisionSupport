@@ -125,7 +125,7 @@ def chart_options_handler(source_df, legend_sources, pretreatment_options, has_d
         if legend_length % 2 == 0:  # 整除
             bottom_gap = 35 * legend_length // 2
         else:
-            bottom_gap = 30 * (legend_length // 2 + 1)
+            bottom_gap = 25 * (legend_length // 2 + 1)
     # 根据预处理信息绘制图形
     options = {
         "title": pretreatment_options["title"],

@@ -32,13 +32,13 @@ class TrendTableChartView(MethodView):
         if not variety_id:
             select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show`,`suffix_index` " \
                                "FROM `info_trend_echart` WHERE `author_id`=%s " \
-                               "ORDER by `create_time` DESC;"
+                               "ORDER by `suffix_index`,`update_time` DESC;"
             cursor.execute(select_statement, (user_id, ))
         else:
             select_statement = "SELECT `id`,`create_time`,`update_time`,`title`,`decipherment`,`is_trend_show`,`is_variety_show`,`suffix_index` " \
                                "FROM `info_trend_echart` " \
                                "WHERE `author_id`=%s AND `variety_id`=%s " \
-                               "ORDER by `create_time` DESC;"
+                               "ORDER by `suffix_index`,`update_time` DESC;"
             cursor.execute(select_statement, (user_id, variety_id))
         user_charts = cursor.fetchall()
         db_connection.close()
@@ -97,6 +97,37 @@ class TrendTableChartView(MethodView):
         else:
             db_connection.close()
             return jsonify({"message": "保存成功!"}), 201
+
+    # 修改图形排序
+    def put(self):
+        body_json = request.json
+        current_id = body_json.get('current_id', None)
+        current_suffix = body_json.get('current_suffix', None)
+        target_id = body_json.get('target_id', None)
+        target_suffix = body_json.get('target_suffix', None)
+
+        if not all([current_id, current_suffix, target_id, target_suffix]):
+            return jsonify({"message": "缺少参数.."}), 400
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        try:
+            update_statement = "UPDATE `info_trend_echart` SET `suffix_index`=%s WHERE `id`=%s;"
+            cursor.execute(update_statement, (current_suffix, target_id))
+            cursor.execute(update_statement, (target_suffix, current_id))
+        except Exception as e:
+            db_connection.rollback()
+            current_app.logger.error("修改图形顺序错误{}".format(e))
+            db_connection.close()
+            return jsonify({"message": "修改失败"}), 400
+        else:
+            db_connection.commit()
+            resp_data = {
+                "current_id": current_id,
+                "current_suffix": target_suffix,
+                "target_id": target_id,
+                "target_suffix": current_suffix
+            }
+            return jsonify({"message": "修改成功", "indexes": resp_data})
 
 
 class TrendChartRetrieveView(MethodView):
