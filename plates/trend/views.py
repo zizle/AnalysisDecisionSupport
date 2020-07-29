@@ -460,8 +460,12 @@ class TrendTableView(MethodView):
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         # 先找到原数据表
-        select_statement = "SELECT `id`,`sql_table` FROM `info_trend_table` WHERE `id`=%s AND `author_id`=%s;"
-        cursor.execute(select_statement, (tid, user_id))
+        if user_info["role_num"] <= 2:
+            select_statement = "SELECT `id`,`sql_table` FROM `info_trend_table` WHERE `id`=%s;"
+            cursor.execute(select_statement, (tid,))
+        else:
+            select_statement = "SELECT `id`,`sql_table` FROM `info_trend_table` WHERE `id`=%s AND `author_id`=%s;"
+            cursor.execute(select_statement, (tid, user_id))
         fetch_one = cursor.fetchone()
         if not fetch_one:
             db_connection.close()

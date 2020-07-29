@@ -15,7 +15,7 @@ class UserVarietyView(MethodView):
                      "FROM `info_user` WHERE `id`=%d;" % uid
         cursor.execute(query_user)
         user_info = cursor.fetchone()
-        if user_info['role_num'] == 1:
+        if user_info['role_num'] <= 2:
             query_statement = "SELECT `id` AS `variety_id`,`name`,`is_active` " \
                               "FROM `info_variety` WHERE `is_active`=1 AND `parent_id` IS NOT NULL;"
         else:
