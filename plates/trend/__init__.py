@@ -2,7 +2,7 @@
 # Author: zizle
 
 from flask import Blueprint
-from .views import TrendGroupView, UserTrendTableView, TrendTableView, UserTrendChartView
+from .views import TrendGroupView, UserTrendTableView, TrendTableView, UserTrendChartView, TableMessageView
 from .source import UserDataSourceConfigView
 from .variety import VarietyTrendTableView
 from .chart import TrendTableChartView, TrendChartRetrieveView, TableChartsView, VarietyPageCharts, TrendPageCharts
@@ -20,6 +20,7 @@ trend_blp.add_url_rule('trend/table-chart/<int:cid>/', view_func=TrendChartRetri
 
 trend_blp.add_url_rule('trend/table/<int:tid>/', view_func=TrendTableView.as_view(name='trendtable'))  # 获取某个table的源数据
 trend_blp.add_url_rule('trend/table/<int:tid>/charts/', view_func=TableChartsView.as_view(name='tablecharts'))  # 获取某个table下的所有图形
+trend_blp.add_url_rule('trend/table/<int:tid>/message/', view_func=TableMessageView.as_view(name='tablemsg'))  # 获取某个table的基本信息
 
 trend_blp.add_url_rule('trend/variety-charts/<int:vid>/', view_func=VarietyPageCharts.as_view(name='varietycharts'))  # 在品种页显示的图形接口
 trend_blp.add_url_rule('trend/charts/', view_func=TrendPageCharts.as_view('thcview'))  # 基本分析首页展示图形

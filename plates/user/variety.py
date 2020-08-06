@@ -28,14 +28,14 @@ class UserVarietyView(MethodView):
 
         db_connection.close()
         # print(query_result)
-        return jsonify({"message":"查询成功!", "variety": query_result, "user_info":user_info})
+        return jsonify({"message": "查询成功!", "variety": query_result, "user_info": user_info})
 
     def post(self, uid):
         body_json = request.json
         utoken = body_json.get('utoken')
         operate_user = verify_json_web_token(utoken)
         if not operate_user:
-            return jsonify({"message":"登录已过期."}), 400
+            return jsonify({"message": "登录已过期."}), 400
         if operate_user['role_num'] > 2:
             return jsonify({"message": "您无法进行这个操作"}), 400
         is_active = body_json.get('is_active', 0)

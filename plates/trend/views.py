@@ -603,3 +603,31 @@ class UserTrendChartView(MethodView):  # 现已关闭本接口
     #     db_connection.commit()
     #     db_connection.close()
     #     return jsonify({"message":'保存配置成功'}), 201
+
+
+class TableMessageView(MethodView):
+    def get(self, tid):
+        """ 获取某个table的基础信息 """
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        cursor.execute("SELECT `id`,`create_time`,`update_time`,`title`,`origin`,`note` "
+                       "FROM `info_trend_table` WHERE `id`=%d;" % tid)
+        table_item = cursor.fetchone()
+        db_connection.close()
+        return jsonify({"message": "数据查询成功!", "table_item": table_item})
+
+    def post(self, tid):
+        """ 修改某个table的基础信息 """
+        body_json = request.json
+        print(body_json)
+        origin = body_json.get("origin_text", None)
+        note = body_json.get("note_text", None)
+        if not all([origin, note]):
+            return jsonify({"message": "数据不能为空!"}), 400
+        s = "UPDATE `info_trend_table` SET `origin`=%s,`note`=%s WHERE `id`=%s;"
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        cursor.execute(s, (origin, note, tid))
+        db_connection.commit()
+        db_connection.close()
+        return jsonify({"message": "修改成功!"})

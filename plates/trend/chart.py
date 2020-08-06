@@ -182,12 +182,17 @@ class TrendChartRetrieveView(MethodView):
             source_df.reset_index(drop=True, inplace=True)  # 重置数据索引
             x_axis_start = x_axis['start']
             x_axis_end = x_axis['end']
+            last_weeks = x_axis.get('last_weeks', '')
             if x_axis_start:  # 切片取数
                 start_year = datetime.strptime(x_axis_start, '%Y').strftime(date_format)
                 source_df = source_df[start_year <= source_df['column_0']]
             if x_axis_end:  # 切片取数
                 end_year = datetime.strptime(x_axis_end, '%Y').strftime(date_format)
                 source_df = source_df[source_df['column_0'] <= end_year]
+            if last_weeks:  # 最近几周的数据
+                start_date = datetime.today() + timedelta(weeks=-int(last_weeks))
+                start_date = start_date.strftime(date_format)
+                source_df = source_df[start_date <= source_df['column_0']]
         else:  # 横轴非时间轴
             source_df = source_df.sort_values(by=x_axis['col_index'])  # 排序
             source_df.reset_index(drop=True, inplace=True)  # 重置数据索引
@@ -216,6 +221,7 @@ class TrendChartRetrieveView(MethodView):
 
         start_year = body_json.get('start', '')
         end_year = body_json.get('end', '')
+        last_weeks = body_json.get('last_weeks', '')
         try:
             if start_year:
                 if int(start_year) <= 0 or len(start_year) != 4:
@@ -242,6 +248,7 @@ class TrendChartRetrieveView(MethodView):
             option_content = json.load(file)
         option_content['x_axis'][0]["start"] = str(start_year)
         option_content['x_axis'][0]["end"] = str(end_year)
+        option_content['x_axis'][0]["last_weeks"] = str(last_weeks)
         with open(opts_file_path, 'w', encoding='utf-8') as f:
             json.dump(option_content, f, indent=4)
         return jsonify({"message": "修改成功!"})

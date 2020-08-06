@@ -52,6 +52,17 @@ class ProvinceWarehouseView(MethodView):
 
 
 class DeliveryVarietyMessage(MethodView):
+    def get(self):
+        """ 返回所有品种的交割信息 """
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        query_sql = "SELECT id,variety,variety_en,last_trade,receipt_expire,delivery_unit,limit_holding " \
+                    "FROM info_variety_delivery;"
+        cursor.execute(query_sql)
+        all_items = cursor.fetchall()
+        db_connection.close()
+        return jsonify({"message": "查询成功!", "variety_data": all_items})
+
     def post(self):
         # 批量新增品种信息
         body_json = request.json
@@ -82,3 +93,20 @@ class DeliveryVarietyMessage(MethodView):
         # db_connection.close()
         return jsonify({'message': '保存成功!'})
 
+    def put(self):
+        """ 修改品种的信息 """
+        body_json = request.json
+        vid = body_json.get("vid", None)
+        last_trade = body_json.get("last_trade", None)
+        receipt_expire = body_json.get("receipt_expire", None)
+        delivery_unit = body_json.get("delivery_unit", None)
+        limit_holding = body_json.get("limit_holding", None)
+        update_sql = "UPDATE `info_variety_delivery` " \
+                     "SET `last_trade`=%s,`receipt_expire`=%s,`delivery_unit`=%s,`limit_holding`=%s " \
+                     "WHERE `id`=%s;"
+        db_connection = MySQLConnection()
+        cursor = db_connection.get_cursor()
+        cursor.execute(update_sql, (last_trade, receipt_expire, delivery_unit, limit_holding, vid))
+        db_connection.commit()
+        db_connection.close()
+        return jsonify({"message": "修改成功!"})

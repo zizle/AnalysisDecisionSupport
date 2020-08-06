@@ -35,7 +35,7 @@ def graphic_option(text):
                     'height': 35
                 },
                 'style': {
-                    'fill': 'rgba(0,0,0,0.3)'
+                    'fill': 'rgba(0,0,0,0.03)'
                 }
             },
             {
@@ -44,7 +44,7 @@ def graphic_option(text):
                 'top': 'center',
                 'z': 100,
                 'style': {
-                    'fill': '#fff',
+                    'fill': 'rgba(255,255,255,0.5)',
                     'text': text,
                     'font': 'bold 22px Microsoft YaHei'
                 }
