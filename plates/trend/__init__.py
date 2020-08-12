@@ -4,7 +4,7 @@
 from flask import Blueprint
 from .views import TrendGroupView, UserTrendTableView, TrendTableView, UserTrendChartView, TableMessageView
 from .source import UserDataSourceConfigView
-from .variety import VarietyTrendTableView
+from .variety import VarietyTrendTableView, OnlyMeVarietyTrendTableView
 from .chart import TrendTableChartView, TrendChartRetrieveView, TableChartsView, VarietyPageCharts, TrendPageCharts
 
 trend_blp = Blueprint(name='trend', import_name=__name__, url_prefix='/')
@@ -13,6 +13,7 @@ trend_blp.add_url_rule('trend/group/', view_func=TrendGroupView.as_view(name='tr
 trend_blp.add_url_rule('user/data_configs/', view_func=UserDataSourceConfigView.as_view(name='uconfigs'))  # 用户数据源配置
 trend_blp.add_url_rule('user/<int:uid>/trend/table/', view_func=UserTrendTableView.as_view(name='utdtable'))  # 用户数据表(所有,上传)
 trend_blp.add_url_rule('variety/<int:vid>/trend/table/', view_func=VarietyTrendTableView.as_view(name='vtdtable'))  # 品种的数据表
+trend_blp.add_url_rule('variety/<int:vid>/trend/table/only_me/', view_func=OnlyMeVarietyTrendTableView.as_view(name='mevtdtable'))  # 我上传的品种的数据表
 
 # trend_blp.add_url_rule('user/1/trend/chart/', view_func=UserTrendChartView.as_view(name='utdchart'))  # 旧版保存图形配置接口(临时接口用于同步旧版数据)
 trend_blp.add_url_rule('trend/table-chart/', view_func=TrendTableChartView.as_view(name='tchart'))  # 新版保存图形配置接口（GET-用户保存的所有图形）

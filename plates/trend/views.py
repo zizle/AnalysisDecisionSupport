@@ -131,7 +131,7 @@ class UserTrendTableView(MethodView):
         title_md5 = md5(title.encode('utf8')).hexdigest()
         table_exists = "SELECT `sql_table` " \
                        "FROM `info_trend_table` " \
-                       "WHERE `variety_id`=%s AND `group_id`=%s AND `title_md5`=%s;"
+                       "WHERE `variety_id`=%s AND `group_id`=%s AND `title_md5`=%s AND `is_active`=1;"
         cursor.execute(table_exists, (variety_id, group_id, title_md5))
         exists_ret = cursor.fetchone()
         if exists_ret:  # 数据表存在，进行更新
@@ -336,7 +336,7 @@ class TrendTableView(MethodView):
     def get(self, tid):
         table_info_statement = "SELECT `sql_table` " \
                                "FROM `info_trend_table` " \
-                               "WHERE id=%d AND `is_active`=1;" % tid
+                               "WHERE id=%d;" % tid
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         cursor.execute(table_info_statement)

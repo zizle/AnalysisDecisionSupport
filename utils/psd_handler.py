@@ -32,7 +32,7 @@ def verify_json_web_token(token):
             algorithms=['HS256']
         )
     except Exception as e:
-        print(e)
+        # print(e)
         return None
     else:
         return data

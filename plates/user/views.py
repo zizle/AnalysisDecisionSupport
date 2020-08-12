@@ -17,16 +17,17 @@ class UsersView(MethodView):
         try:
             role_num = int(role_num)
         except Exception as e:
-            return jsonify({"message":"参数错误"}), 400
+            return jsonify({"message": "参数错误"}), 400
         user_info = verify_json_web_token(utoken)
         if not user_info or user_info['role_num'] > enums.OPERATOR:
-            return jsonify({"message":"不能访问或登录已过期。"}), 400
+            return jsonify({"message": "不能访问或登录已过期。"}), 400
         if role_num == 0:
-            query_statement = "SELECT `id`,`username`,`avatar`,`phone`,`email`,`role_num`,`note`, " \
-                              "DATE_FORMAT(`join_time`,'%Y-%m-%d') AS `join_time`,DATE_FORMAT(`update_time`,'%Y-%m-%d') AS `update_time`" \
+            query_statement = "SELECT `id`,`username`,`avatar`,`phone`,`email`,`role_num`,`note`,`is_active`, " \
+                              "DATE_FORMAT(`join_time`,'%Y-%m-%d') AS `join_time`, " \
+                              "DATE_FORMAT(`update_time`,'%Y-%m-%d') AS `update_time` " \
                               "FROM `info_user` WHERE `id`>1;"
         else:
-            query_statement = "SELECT `id`,`username`,`avatar`,`phone`,`email`,`role_num`,`note`," \
+            query_statement = "SELECT `id`,`username`,`avatar`,`phone`,`email`,`role_num`,`note`,`is_active`," \
                               "DATE_FORMAT(`join_time`,'%%Y-%%m-%%d') AS `join_time`," \
                               "DATE_FORMAT(`update_time`,'%%Y-%%m-%%d') AS `update_time` " \
                               "FROM `info_user` WHERE `role_num`=%d;" % role_num
@@ -37,7 +38,7 @@ class UsersView(MethodView):
         for user_item in cursor.fetchall():
             user_item['role_text'] = enums.user_roles.get(user_item['role_num'], '未知')
             response_users.append(user_item)
-        return jsonify({"message":"获取信息成功!", "users": response_users})
+        return jsonify({"message": "获取信息成功!", "users": response_users})
 
 
 class RetrieveUserView(MethodView):
@@ -46,7 +47,6 @@ class RetrieveUserView(MethodView):
         body_json = request.json
         utoken = body_json.get('utoken',None)
         operate_user = verify_json_web_token(utoken)  # 操作者
-        print(operate_user)
         if not operate_user or operate_user['role_num'] > 2:
             return jsonify({'message': '没有权限进行这个操作!'}), 400
         # 重置密码
@@ -64,10 +64,16 @@ class RetrieveUserView(MethodView):
         body_json = request.json
         utoken = body_json.get('utoken')
         user_info = verify_json_web_token(utoken)
+
         if not user_info or user_info['role_num'] > enums.OPERATOR:
             return jsonify({"message": "不能这样操作或登录过期"}), 400
+
+        is_active = 1 if body_json.get('is_active', False) else 0
+        is_sync_tables = 1 if body_json.get('sync_tables', False) else 0
+
         to_role_num = body_json.get('role_num', enums.NORMAL)
         note = body_json.get('note', '')
+
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         select_statement = "SELECT `id`,`role_num` FROM `info_user` WHERE `id`=%d;" %uid
@@ -85,12 +91,26 @@ class RetrieveUserView(MethodView):
         if user_info['role_num'] > enums.SUPERUSER and to_role_num < enums.COLLECTOR:
             db_connection.close()
             return jsonify({'message': '您不能设置运营管理员角色!'}), 400
-        update_statement = "UPDATE `info_user` SET `role_num`=%s,`note`=%s WHERE `id`=%s;"
-        cursor.execute(update_statement, (to_role_num, note, uid))
-        db_connection.commit()
-        db_connection.close()
 
-        return jsonify({"message": "修改成功!", "role_text": enums.user_roles.get(to_role_num, ""), 'note':note})
+        update_statement = "UPDATE `info_user` SET `role_num`=%s,`note`=%s, `is_active`=%s WHERE `id`=%s;"
+        db_connection.begin()
+        try:
+            cursor.execute(update_statement, (to_role_num, note, is_active, uid))
+            # 如果同步数据表，修改数据表的状态
+            if is_sync_tables:
+                cursor.execute(
+                    "UPDATE `info_trend_table` SET `is_active`=%s WHERE `author_id`=%s;",
+                    (is_active, uid)
+                )
+            db_connection.commit()
+        except Exception as e:
+            current_app.logger.error("修改人员状态和同步数据表状态错误:{}".format(e))
+            db_connection.rollback()
+            db_connection.close()
+            return jsonify({"message": "修改失败!"})
+        else:
+            db_connection.close()
+            return jsonify({"message": "修改成功!", "role_text": enums.user_roles.get(to_role_num, ""), 'note':note})
 
 
 class UserInfoView(MethodView):

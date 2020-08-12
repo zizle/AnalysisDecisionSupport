@@ -239,7 +239,7 @@ class TrendChartRetrieveView(MethodView):
                           "FROM `info_trend_echart` WHERE `id`=%s AND `author_id`=%s;"
         cursor.execute(query_statement, (cid, user_info['id']))
         result = cursor.fetchone()
-        db_connection.close()
+
         if not result:
             return jsonify({"message": "图形不存在了"}), 400
         opts_file_path = result['options_file']
@@ -251,6 +251,14 @@ class TrendChartRetrieveView(MethodView):
         option_content['x_axis'][0]["last_weeks"] = str(last_weeks)
         with open(opts_file_path, 'w', encoding='utf-8') as f:
             json.dump(option_content, f, indent=4)
+        # 修改成功更新时间
+        now = datetime.now()
+        cursor.execute(
+            "UPDATE info_trend_echart SET `update_time`=%s WHERE id=%s AND author_id=%s;",
+            (now, cid, user_info["id"])
+        )
+        db_connection.commit()
+        db_connection.close()
         return jsonify({"message": "修改成功!"})
 
     # 修改图形的信息（首页显示,品种页显示,解说修改）

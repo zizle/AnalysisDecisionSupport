@@ -35,7 +35,7 @@ def graphic_option(text):
                     'height': 35
                 },
                 'style': {
-                    'fill': 'rgba(0,0,0,0.03)'
+                    'fill': 'rgba(0,0,0,0.4)'
                 }
             },
             {
@@ -44,7 +44,7 @@ def graphic_option(text):
                 'top': 'center',
                 'z': 100,
                 'style': {
-                    'fill': 'rgba(255,255,255,0.5)',
+                    'fill': 'rgba(255,255,255)',
                     'text': text,
                     'font': 'bold 22px Microsoft YaHei'
                 }
@@ -118,18 +118,18 @@ def chart_options_handler(source_df, legend_sources, pretreatment_options, has_d
     # 标题大小
     title_size = pretreatment_options['title']['textStyle']['fontSize']
     # 设计图形距离底部的高度(为图例留出空间)
-    legend_length = len(legend_data)
-    if legend_length // 2 == 0:  # 小于2个
-        bottom_gap = 30
-    else:
-        if legend_length % 2 == 0:  # 整除
-            bottom_gap = 35 * legend_length // 2
-        else:
-            bottom_gap = 25 * (legend_length // 2 + 1)
+    # legend_length = len(legend_data)
+    # if legend_length // 2 == 0:  # 小于2个
+    #     bottom_gap = 30
+    # else:
+    #     if legend_length % 2 == 0:  # 整除
+    #         bottom_gap = 35 * legend_length // 2
+    #     else:
+    #         bottom_gap = 25 * (legend_length // 2 + 1)
     # 根据预处理信息绘制图形
     options = {
         "title": pretreatment_options["title"],
-        'legend': {'data': legend_data, 'bottom': 16, 'height': 20},
+        'legend': {'type': 'scroll', 'data': legend_data, 'bottom': 16, 'height': 20},
         'tooltip': {
             'trigger': 'axis',
             'axisPointer': {
@@ -147,7 +147,7 @@ def chart_options_handler(source_df, legend_sources, pretreatment_options, has_d
             'top': title_size + 15,
             'left': 5,
             'right': 5,
-            'bottom': bottom_gap + 16,
+            'bottom': 46,
             'show': False,
             'containLabel': True,
         },
@@ -224,18 +224,18 @@ def season_chart_options_handler(source_df, pretreatment_options, has_datazoom=T
     # 5 生成配置项进行绘图
     title_size = pretreatment_options['title']['textStyle']['fontSize']
     # 设计图形距离底部的高度(为图例留出空间)
-    legend_length = len(legend_data)
-    if legend_length // 8 == 0:  # 小于8个
-        bottom_gap = 30
-    else:
-        if legend_length % 8 == 0:  # 整除
-            bottom_gap = 35 * legend_length // 8
-        else:
-            bottom_gap = 30 * (legend_length // 8 + 1)
+    # legend_length = len(legend_data)
+    # if legend_length // 8 == 0:  # 小于8个
+    #     bottom_gap = 30
+    # else:
+    #     if legend_length % 8 == 0:  # 整除
+    #         bottom_gap = 35 * legend_length // 8
+    #     else:
+    #         bottom_gap = 30 * (legend_length // 8 + 1)
 
     options = {
         'title': pretreatment_options["title"],
-        'legend': {'data': legend_data, 'bottom':16,'height': 20},
+        'legend': {'type': 'scroll','data': legend_data, 'bottom':16,'height': 20},
         'tooltip': {
             'trigger': 'axis',
             'axisPointer': {
@@ -253,7 +253,7 @@ def season_chart_options_handler(source_df, pretreatment_options, has_datazoom=T
             'top': title_size + 15,
             'left': 5,
             'right': 5,
-            'bottom': bottom_gap + 16,
+            'bottom': 46,
             'show': False,
             'containLabel': True,
         },
