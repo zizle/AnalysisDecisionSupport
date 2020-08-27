@@ -5,6 +5,68 @@ from flask import request, jsonify
 from db import MySQLConnection
 from flask.views import MethodView
 from utils.psd_handler import verify_json_web_token
+from utils.client import get_client
+
+def is_authorization(user_id, module_id):
+    """ 查询用户的模块进入权限
+    :return bool
+    """
+    return False
+
+
+
+
+def get_user_access_module():
+    """ 用户请求是否具有进入某个模块的权限
+    '0' - 首页
+    '-9' - 管理端的管理菜单
+    """
+    body_json = request.json
+    print(body_json)
+    module_id = body_json.get("module_id", None)
+    module_text = body_json.get("module_text", None)
+    client_token = body_json.get("client", None)
+    user_token = body_json.get("utoken", None)
+    if module_id == "0":
+        return jsonify({
+            "message": "获取权限结果成功",
+            "allow_in": True,
+            "module_id": module_id,
+            "module_text": module_text
+        })
+
+    client = get_client(client_token)
+    # 如果客户端是管理端,直接全部通过
+    if client and client["is_manager"]:
+        return jsonify({
+            "message": "获取权限结果成功",
+            "allow_in": True,
+            "module_id": module_id,
+            "module_text": module_text
+        })
+    else:
+        # 非管理端进行权限验证
+        user_info = verify_json_web_token(user_token)
+        if not user_info:
+            return jsonify({
+                "message": "您还未登录,请登录后再进行这个操作!",
+                "allow_in": False,
+                "module_id": module_id,
+                "module_text": module_text
+            })
+        # 有用户,普通客户端,进行权限查询
+        if is_authorization(user_info["id"], module_id):
+            message = '获取权限结果成功!'
+            allow_in = True
+        else:
+            message = "您还没有进入「" + module_text + "」的权限...\n请联系管理员进行开通."
+            allow_in = False
+        return jsonify({
+            "message": message,
+            "allow_in": allow_in,
+            "module_id": module_id,
+            "module_text": module_text
+        })
 
 
 class ClientView(MethodView):
@@ -112,7 +174,7 @@ class SortModuleView(MethodView):
             current_id = int(current_id)
             target_id = int(target_id)
         except Exception as e:
-            return jsonify({'message':'参数错误！'}), 400
+            return jsonify({'message': '参数错误！'}), 400
         db_connection = MySQLConnection()
         cursor = db_connection.get_cursor()
         query_statement = "SELECT `sort` FROM `info_module` WHERE `id`=%s;"
