@@ -6,7 +6,7 @@ Jinja2==2.11.1
 MarkupSafe==1.1.1
 numpy==1.18.4
 pandas==1.0.3
-Pillow==7.1.1
+Pillow==8.1.1
 prettytable==0.7.2
 pyecharts==1.7.1
 PyJWT==1.7.1
